@@ -199,7 +199,7 @@ func (self *ProtoGrapher) Convert(data map[string]interface{}, label string) []o
             vw := WrapValue( map[string]interface{}{k:v} ).GetStructValue()
             vertexCreate.Query = append(vertexCreate.Query, &ophion.GraphStatement{&ophion.GraphStatement_Property{vw}})
           case *FieldAction_InnerVertex:
-            log.Printf("Missing InnerVertex %s\n", t)
+            log.Printf("Missing InnerVertex %s %s\n", k, t)
           case *FieldAction_JoinList:
             //log.Printf("Missing JoinList %s %s %s\n", k, t, v)
             if vlist, ok := v.([]interface{}); ok {
