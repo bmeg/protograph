@@ -5,6 +5,7 @@ import (
   "fmt"
   "log"
   "os"
+  "strings"
   "bufio"
   "gopkg.in/yaml.v2"
   "encoding/json"
@@ -138,19 +139,24 @@ func WrapValue(value interface{}) *structpb.Value {
 }
 
 
-func (self *ProtoGrapher) Convert(data map[string]interface{}) []ophion.GraphQuery {
-  if class, ok := data["#label"]; !ok {
+func (self *ProtoGrapher) Convert(data map[string]interface{}, label string) []ophion.GraphQuery {
+  if class, ok := data["#label"]; !ok && len(label) == 0 {
     fmt.Printf("Not found: %s\n", data)
     return []ophion.GraphQuery{}
   } else {
+    if len(label) > 0 {class = label}
     if trans, ok := self.Transforms[class.(string)]; !ok {
-      fmt.Printf("Not Found: %s\n", class.(string))
+      log.Printf("Not Found: %s\n", class.(string))
       return []ophion.GraphQuery{}
     } else {
       gid, _ := mustache.Render(trans.Gid, data)
 
-      statements := []*ophion.GraphStatement {
-        &ophion.GraphStatement{&ophion.GraphStatement_AddV{AddV:gid}},
+      buildQueries := []ophion.GraphQuery{}
+
+      vertexCreate := ophion.GraphQuery{
+        Query: []*ophion.GraphStatement {
+          &ophion.GraphStatement{&ophion.GraphStatement_AddV{AddV:gid}},
+        },
       }
 
       for k, v := range data {
@@ -163,24 +169,52 @@ func (self *ProtoGrapher) Convert(data map[string]interface{}) []ophion.GraphQue
         if found != nil {
           switch t := found.GetAction().(type) {
           case *FieldAction_SingleEdge:
-
+            log.Printf("Missing SingleEdge %s\n", t)
           case *FieldAction_RepeatedEdges:
-
+            log.Printf("Missing RepeatedEdges %s\n", t)
           case *FieldAction_EmbeddedEdges:
+            //log.Printf("Missing EmbeddedEdges %s %s\n", t, v)
+            if vlist, ok := v.([]interface{}); ok {
+              for _, velm := range vlist {
+                if velm_map, ok := velm.(map[string]interface{}); ok {
+                  dstKey := velm_map[t.EmbeddedEdges.EmbeddedIn].(string)
+                  edgeType := t.EmbeddedEdges.EdgeLabel
 
+                  edge_statments := []*ophion.GraphStatement{
+                    &ophion.GraphStatement{&ophion.GraphStatement_V{gid}},
+                    &ophion.GraphStatement{&ophion.GraphStatement_AddE{edgeType}},
+                    &ophion.GraphStatement{&ophion.GraphStatement_To{dstKey}},
+                  }
+                  buildQueries = append(buildQueries, ophion.GraphQuery{edge_statments})
+
+                }
+              }
+            }
           case *FieldAction_RenameProperty:
-
+            log.Printf("Missing RenameProperty %s\n", t)
           case *FieldAction_SerializeField:
             vw := WrapValue( map[string]interface{}{k:v} ).GetStructValue()
-            statements = append(statements, &ophion.GraphStatement{&ophion.GraphStatement_Property{vw}})
+            vertexCreate.Query = append(vertexCreate.Query, &ophion.GraphStatement{&ophion.GraphStatement_Property{vw}})
           case *FieldAction_SpliceMap:
             vw := WrapValue( map[string]interface{}{k:v} ).GetStructValue()
-            statements = append(statements, &ophion.GraphStatement{&ophion.GraphStatement_Property{vw}})
+            vertexCreate.Query = append(vertexCreate.Query, &ophion.GraphStatement{&ophion.GraphStatement_Property{vw}})
           case *FieldAction_InnerVertex:
-
+            log.Printf("Missing InnerVertex %s\n", t)
           case *FieldAction_JoinList:
-
+            //log.Printf("Missing JoinList %s %s %s\n", k, t, v)
+            if vlist, ok := v.([]interface{}); ok {
+              o := make([]string, len(vlist))
+              for i := range vlist {
+                o[i] = vlist[i].(string)
+              }
+              sv := strings.Join(o, t.JoinList.Delimiter)
+              vw := WrapValue( map[string]interface{}{k:sv} ).GetStructValue()
+              vertexCreate.Query = append(vertexCreate.Query,
+                &ophion.GraphStatement{&ophion.GraphStatement_Property{vw}},
+              )
+            }
           case *FieldAction_StoreField:
+            log.Printf("Missing StoreField %s\n", t)
           default:
             log.Printf("Unknown %s\n", t)
           }
@@ -188,14 +222,12 @@ func (self *ProtoGrapher) Convert(data map[string]interface{}) []ophion.GraphQue
         } else {
           if k != "#label" {
             vw := WrapValue( map[string]interface{}{k:v} ).GetStructValue()
-            statements = append(statements, &ophion.GraphStatement{&ophion.GraphStatement_Property{vw}})
+            vertexCreate.Query = append(vertexCreate.Query, &ophion.GraphStatement{&ophion.GraphStatement_Property{vw}})
           }
         }
       }
-      out := ophion.GraphQuery{
-        Query: statements,
-      }
-      return []ophion.GraphQuery{out}
+      buildQueries = append( []ophion.GraphQuery{vertexCreate}, buildQueries... )
+      return buildQueries
     }
   }
 }
