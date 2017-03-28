@@ -2,6 +2,7 @@
 package main
 
 import (
+  "log"
   "flag"
   "context"
   "os"
@@ -34,6 +35,7 @@ func main() {
       os.Exit(1)
     }
   }
+  count := 0
   for l := range lines {
     mes := map[string]interface{}{}
     err = json.Unmarshal(l, &mes)
@@ -46,6 +48,10 @@ func main() {
           s, _ := protograph.ToJSON(&i)
           fmt.Printf("%s\n", s)
         }
+      }
+      count++
+      if (count % 1000 == 0) {
+        log.Printf("%d messages", count)
       }
     }
   }
