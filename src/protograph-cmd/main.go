@@ -63,14 +63,10 @@ func main() {
           fmt.Printf("%s\n", s)
         }
       }
-      count++
-      if (count % 1000 == 0) {
-        log.Printf("%d messages", count)
-      }
     }
-    //if count % 1000 == 0{
+    if count % 1000 == 0{
       log.Printf("%d lines processed", count)
-    //}
+    }
     count++
   }
   
