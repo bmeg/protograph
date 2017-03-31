@@ -3,8 +3,8 @@ package main
 
 import (
   //"io"
-  "flag"
   "log"
+  "flag"
   "context"
   "os"
   "fmt"
@@ -62,6 +62,10 @@ func main() {
           s, _ := protograph.ToJSON(&i)
           fmt.Printf("%s\n", s)
         }
+      }
+      count++
+      if (count % 1000 == 0) {
+        log.Printf("%d messages", count)
       }
     }
     //if count % 1000 == 0{
