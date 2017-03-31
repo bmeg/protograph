@@ -2,7 +2,9 @@
 package main
 
 import (
+  //"io"
   "flag"
+  "log"
   "context"
   "os"
   "fmt"
@@ -24,7 +26,6 @@ func main() {
     fmt.Fprintf(os.Stderr, "Error parsing file: %s\n", err)
     os.Exit(1)
   }
-  lines, _ := protograph.ReadLines(dataFile)
 
   var client ophion.QueryClient = nil
   if *server_p != "" {
@@ -33,7 +34,15 @@ func main() {
       fmt.Fprintf(os.Stderr, "Error opening connection: %s\n", err)
       os.Exit(1)
     }
+    log.Printf("Connected to %s", *server_p)
   }
+  lines, err := protograph.ReadLines(dataFile)
+  if err != nil {
+    log.Printf("%s", err)
+    os.Exit(1)
+  }
+  count := 0
+  ctx := context.TODO()
   for l := range lines {
     mes := map[string]interface{}{}
     err = json.Unmarshal(l, &mes)
@@ -41,13 +50,24 @@ func main() {
       o := pg.Convert(mes, *class_p)
       for _, i := range o {
         if client != nil {
-          client.Traversal(context.TODO(), &i )
+          stream, err := client.Traversal(ctx, &i )
+          if err != nil {
+            log.Printf("%s", err)
+          } else {
+            for _, err := stream.Recv() ; err == nil; _, err = stream.Recv() {
+              //log.Printf("msg: %s", msg)
+            }
+          }
         } else {
           s, _ := protograph.ToJSON(&i)
           fmt.Printf("%s\n", s)
         }
       }
     }
+    //if count % 1000 == 0{
+      log.Printf("%d lines processed", count)
+    //}
+    count++
   }
-
+  
 }

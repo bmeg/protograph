@@ -22,19 +22,23 @@ func ReadLines(path string) (chan []byte, error) {
   out := make(chan []byte, 100)
   if file, err := os.Open(path); err == nil {
     go func() {
+      defer close(out)
       reader := bufio.NewReaderSize(file, 102400)
       var isPrefix bool = true
       var err error = nil
-      var line, ln []byte
+      var line []byte
+      ln := []byte{}
       for err == nil {
         line, isPrefix, err = reader.ReadLine()
+        if err != nil {
+          return
+        }
         ln = append(ln, line...)
         if !isPrefix {
           out <- ln
           ln = []byte{}
         }
       }
-      close(out)
    } ()
    return out, nil
   } else {
@@ -169,9 +173,29 @@ func (self *ProtoGrapher) Convert(data map[string]interface{}, label string) []o
         if found != nil {
           switch t := found.GetAction().(type) {
           case *FieldAction_SingleEdge:
-            log.Printf("Missing SingleEdge %s\n", t)
+            if dstKey, ok := v.(string); ok {
+              edgeType := t.SingleEdge.EdgeLabel
+                edge_statments := []*ophion.GraphStatement{
+                  &ophion.GraphStatement{&ophion.GraphStatement_V{gid}},
+                  &ophion.GraphStatement{&ophion.GraphStatement_AddE{edgeType}},
+                  &ophion.GraphStatement{&ophion.GraphStatement_To{dstKey}},
+                }
+                buildQueries = append(buildQueries, ophion.GraphQuery{edge_statments})
+            }
+              
           case *FieldAction_RepeatedEdges:
-            log.Printf("Missing RepeatedEdges %s\n", t)
+            if vlist, ok := v.([]interface{}); ok {
+              for _, velm := range vlist {
+                dstKey :=velm.(string)
+                edgeType := t.RepeatedEdges.EdgeLabel
+                  edge_statments := []*ophion.GraphStatement{
+                    &ophion.GraphStatement{&ophion.GraphStatement_V{gid}},
+                    &ophion.GraphStatement{&ophion.GraphStatement_AddE{edgeType}},
+                    &ophion.GraphStatement{&ophion.GraphStatement_To{dstKey}},
+                  }
+                  buildQueries = append(buildQueries, ophion.GraphQuery{edge_statments})
+                }
+              }
           case *FieldAction_EmbeddedEdges:
             //log.Printf("Missing EmbeddedEdges %s %s\n", t, v)
             if vlist, ok := v.([]interface{}); ok {
