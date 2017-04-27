@@ -351,15 +351,20 @@ case class Protograph(transforms: Seq[TransformMessage]) {
       val key = proto.edgeLabel + gid
       val existing = partialSources.getOrElse(key, List[Source]())
       ensureSeq(terminal).map { terminal =>
+        println("data", data)
         val terminalMap = terminal.asInstanceOf[Map[String, Any]]
+        println("terminalMap", terminalMap)
         val lifted = proto.liftFields.foldLeft(Map[String, Any]()) { (outcome, lift) =>
-          val inner = data.get(lift)
+          val inner = terminalMap.get(lift)
+          println("inner", inner)
           if (!inner.isEmpty) {
             outcome ++ inner.get.asInstanceOf[List[Map[String, Any]]].reduce(_ ++ _)
           } else {
             outcome
           }
         }
+
+        println("lifted", lifted)
 
         if (existing.isEmpty) {
           terminalMap.get(proto.embeddedIn).map { id =>
@@ -432,7 +437,7 @@ case class Protograph(transforms: Seq[TransformMessage]) {
 
   def serializeField(map: SerializeField) (field: Option[Any]): Map[String, Any] = {
     field.map { inner =>
-      val json = Protograph.mapper.writeValueAsString(inner) // JsonIO.write(inner)
+      val json = Protograph.mapper.writeValueAsString(inner)
       Map[String, Any](map.serializedName -> json)
     }.getOrElse(Map[String, Any]())
   }
@@ -587,6 +592,11 @@ object Protograph {
 
   def parseJSON(message: String): TransformMessage = {
     JsonFormat.fromJsonString[TransformMessage](message)
+  }
+
+  def readJSON(message: String): Map[String, Any] = {
+    mapper.readValue(message, classOf[Map[String, Any]])
+    // mapper.readValue(message, classTag[Map[String, Any]].runtimeClass.asInstanceOf[Class[Map[String, Any]]])
   }
 
   def load(path: String): List[TransformMessage] = {
