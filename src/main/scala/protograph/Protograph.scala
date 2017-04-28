@@ -591,7 +591,6 @@ object Protograph {
 
   def readJSON(message: String): Map[String, Any] = {
     mapper.readValue(message, classOf[Map[String, Any]])
-    // mapper.readValue(message, classTag[Map[String, Any]].runtimeClass.asInstanceOf[Class[Map[String, Any]]])
   }
 
   def load(path: String): List[TransformMessage] = {
