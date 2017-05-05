@@ -14,9 +14,9 @@ libraryDependencies ++= Seq(
   "org.scalactic"                %% "scalactic"                % "3.0.0",
   "org.scalatest"                %% "scalatest"                % "3.0.0" % "test",
   "org.scala-lang"               %  "scala-compiler"           % "2.11.8",
-  "com.google.protobuf"          %  "protobuf-java"            % "3.1.0",
-  "com.google.protobuf"          %  "protobuf-java-util"       % "3.1.0",
-  "com.google.protobuf"          %  "protoc"                   % "3.1.0"
+  "com.google.protobuf"          %  "protobuf-java"            % "3.3.0",
+  "com.google.protobuf"          %  "protobuf-java-util"       % "3.3.0",
+  "com.google.protobuf"          %  "protoc"                   % "3.3.0"
 ).map(_.exclude("org.slf4j", "slf4j-log4j12"))
 
 resolvers += "Local Maven Repository" at "file://" + Path.userHome.absolutePath + "/.m2/repository"
