@@ -593,6 +593,10 @@ object Protograph {
     mapper.readValue(message, classOf[Map[String, Any]])
   }
 
+  def writeJSON(message: _): String = {
+    mapper.writeValueAsString(message)
+  }
+
   def load(path: String): List[TransformMessage] = {
     val yaml = new Yaml()
     val obj = yaml.load(new FileInputStream(path)).asInstanceOf[java.util.ArrayList[Any]]
