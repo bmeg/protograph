@@ -37,5 +37,9 @@ Gids are used to link messages together. Typically a message will contain a gid 
 
 In general, you specify a transformation for a given message type by describing what to do for each key in the message. Each key can contain any arbitrary data, so directives must also handle a variety of message types. Describing what the directives are, what they do, and how to invoke them is the bulk of understanding how to use Protograph.
 
-# how to write your `protograph.yaml`
+# how to write protograph
+
+Protograph has a protocol buffer schema defined [here](https://github.com/bmeg/protograph/blob/master/src/main/proto/protograph/schema/Protograph.proto).
+
+
 
