@@ -29,5 +29,9 @@ Protograph directives are partitioned by type. When creating a protobuffer schem
 
 Gids are one of the key concepts of Protograph. A gid (global identifier) refers to an identifier that can be entirely constructed *from the message itself*. Each message type declares a gid template that accepts the message as an argument and constructs the gid from values found within.
 
+## messages reference one another through gids
+
 Gids are used to link messages together. Typically a message will contain a gid for another message under some property in a string (for a single link) or list (for a multitude of links). Sometimes these references will be embedded inside an inner map, or list of maps. Protograph enables you to specify references anywhere they may live.
+
+# how to write your `protograph.yaml`
 
