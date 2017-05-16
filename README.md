@@ -6,9 +6,9 @@
 
 Protograph is a protocol for describing the transformation from any given schema into a set of graph vertexes and edges. 
 
-Input for Protograph is a stream of messages described in a [Protocol Buffers schema](https://developers.google.com/protocol-buffers/), and a `protograph.yaml` file that describes how to transform these messages into vertexes and edges.
+Input for Protograph is a stream of messages described in a [Protocol Buffers schema](https://developers.google.com/protocol-buffers/), and a `protograph.yml` file that describes how to transform these messages into vertexes and edges.
 
-To a small degree the `protograph.yaml` description concerns serialization of the actual values stored in the vertex or edge, but largely Protograph is concerned with how to *link* the separate entities together. In order to create a graph out of many separate messages, the values in each message that describe their identity and links to other entities must be consistent with one another. Largely this consistency is generated before the messages arrive to be processed by Protograph, but Protograph maintains this consistency and in some cases generates additional references during its processing.
+To a small degree the `protograph.yml` description concerns serialization of the actual values stored in the vertex or edge, but largely Protograph is concerned with how to *link* the separate entities together. In order to create a graph out of many separate messages, the values in each message that describe their identity and links to other entities must be consistent with one another. Largely this consistency is generated before the messages arrive to be processed by Protograph, but Protograph maintains this consistency and in some cases generates additional references during its processing.
 
 In general when referring to *links* this can mean a vertex connecting through an edge to another vertex, but it could also mean an edge connecting to either terminal vertex or even a partial edge referencing its other half.
 
@@ -23,7 +23,10 @@ To Protograph, vertexes and edges are able to contain properties: ie, key/value 
 
 ## protograph works with typed messages
 
-Protograph directives are partitioned by type. When creating a protobuffer schema you declare a series of message types, and in `protograph.yaml` you refer to these type names when declaring how each message will be processed.
+Protograph directives are partitioned by type. When creating a protobuffer schema you declare a series of message types, and in `protograph.yml` you refer to these type names when declaring how each message will be processed.
+
+    # a typed message
+    - label: Individual
 
 ## each message type has a gid
 

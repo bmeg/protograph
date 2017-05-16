@@ -2,6 +2,30 @@ syntax = "proto3";
 
 package protograph.schema;
 
+message TransformMessage {
+  string label = 1;
+  string role = 2;
+  string gid = 3;
+  repeated FieldAction actions = 4;
+}
+
+message FieldAction {
+  string field = 1;
+  oneof action {
+    EdgeDescription remote_edges = 2;
+    EdgeDescription link_through = 3;
+    EdgeDescription edge_source = 4;
+    EdgeDescription edge_terminal = 5;
+    EdgeDescription embedded_terminals = 6;
+    RenameProperty rename_property = 9;
+    SerializeField serialize_field = 10;
+    SpliceMap splice_map = 11;
+    InnerVertex inner_vertex = 12;
+    JoinList join_list = 13;
+    StoreField store_field = 14;
+  }
+}
+
 message EdgeDescription {
   string edge_label = 1;
   string destination_label = 2;
@@ -35,26 +59,3 @@ message StoreField {
   bool store = 1;
 }
 
-message FieldAction {
-  string field = 1;
-  oneof action {
-    EdgeDescription remote_edges = 2;
-    EdgeDescription link_through = 3;
-    EdgeDescription edge_source = 4;
-    EdgeDescription edge_terminal = 5;
-    EdgeDescription embedded_terminals = 6;
-    RenameProperty rename_property = 9;
-    SerializeField serialize_field = 10;
-    SpliceMap splice_map = 11;
-    InnerVertex inner_vertex = 12;
-    JoinList join_list = 13;
-    StoreField store_field = 14;
-  }
-}
-
-message TransformMessage {
-  string label = 1;
-  string role = 2;
-  string gid = 3;
-  repeated FieldAction actions = 4;
-}
