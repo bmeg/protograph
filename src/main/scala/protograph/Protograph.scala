@@ -593,7 +593,7 @@ object Protograph {
     mapper.readValue(message, classOf[Map[String, Any]])
   }
 
-  def writeJSON(message: _): String = {
+  def writeJSON(message: Any): String = {
     mapper.writeValueAsString(message)
   }
 
