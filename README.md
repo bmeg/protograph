@@ -33,5 +33,9 @@ Gids are one of the key concepts of Protograph. A gid (global identifier) refers
 
 Gids are used to link messages together. Typically a message will contain a gid for another message under some property in a string (for a single link) or list (for a multitude of links). Sometimes these references will be embedded inside an inner map, or list of maps. Protograph enables you to specify references anywhere they may live.
 
+## transformations are comprised of directives
+
+In general, you specify a transformation for a given message type by describing what to do for each key in the message. Each key can contain any arbitrary data, so directives must also handle a variety of message types. Describing what the directives are, what they do, and how to invoke them is the bulk of understanding how to use Protograph.
+
 # how to write your `protograph.yaml`
 
