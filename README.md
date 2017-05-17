@@ -116,17 +116,72 @@ In order to specify how to handle the `remote_edges`, there are minimum two piec
         edge_label: geneInFamily
         destination_label: GeneFamily
 
-Both `edge_label` and `destination_label` are part of a common schema message called `EdgeDescription`. `EdgeDescription` has a couple of other fields, `embedded_in` and a list of fields called `lift_fields`.
+Both `edge_label` and `destination_label` are part of a common schema message called `EdgeDescription`. `EdgeDescription` has another optional field, `embedded_in`.
+
+### embedded_in
 
 Many times the referenced gid you are looking for is embedded inside another map in the input message. For this you can specify the `embedded_in` field:
 
     # gid is embedded inside another map
-    "callSets": [{"callsetId": "callset:someInstitution:someMethod"}]
+    "target": [{"geneId": "gene:MDM2"}]
 
     # direct Protograph to unembed it
-    - field: callSets
+    - field: target
       remote_edges:
-        edge_label: inCallSet
-        destination_label: CallSet
+        edge_label: compoundTargetsGene
+        destination_label: Gene
+        embedded_in: geneId
+
+## link_through
+
+Another common case to deal with is where you have a field that references another message, but that message is just an edge to the ultimate vertex you want to link to. Something like this:
+
+    # a Variant message points to a CallSet, 
+    # but that is just an intermediate step to Biosample
+    {...
+     "calls": [{"callSetId": "callSet:ohsu:prime"}]}
+
+    # the corresponding CallSet message, with the
+    # Biosample reference we are looking for
+    {"gid": "callSet:ohsu:prime",
+     "location": "ohsu",
+     "method": "prime",
+     "biosampleId": "biosample:prime:TCGA-101010"}
+
+This is a case for `link_through`, and its associate `edge_terminal`. The idea is to specify the link you want in the `link_through`, and in the Protograph description for the message you are "going through" you specify how to create the `edge_terminal`:
+
+    # Protograph link_through in Variant
+    - field: calls
+      link_through:
+        edge_label: variantInBiosample
+        destination_label: Biosample
         embedded_in: callSetId
-    
+
+    # Protograph edge_terminal in CallSet
+    - field: biosampleId
+      edge_terminal:
+        edge_label: variantInBiosample
+        destination_label: Biosample
+
+If you notice, they take the same arguments and values for those arguments. As long as `edge_label` and `destination_label` match for both directives, Protograph will fuse them into a single edge, and place the properties from the intermediate message into the edge:
+
+    # the output Variant vertex
+    {"label": "Variant"
+     "gid": "variant:1:10521380:10521380:A:-"
+     "properties": {
+       "referenceName": "1",
+       "start": "10521380",
+       "end": "10521380",
+       "referenceBases": "A",
+       "alternateBases": ["-"]}}}
+
+    # the output edge
+    {"label": "variantInBiosample",
+     "fromLabel": "Variant",
+     "from": "variant:1:10521380:10521380:A:-"
+     "toLabel": "Biosample",
+     "to": "biosample:CCLE:1321N1_CENTRAL_NERVOUS_SYSTEM",
+     "gid": "(variant:1:10521380:10521380:A:-)->(biosample:CCLE:1321N1_CENTRAL_NERVOUS_SYSTEM)",
+     "properties": {
+       "location": "ohsu",
+       "method": "prime"}}
