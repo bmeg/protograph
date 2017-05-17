@@ -175,7 +175,7 @@ If you notice, they take the same arguments and values for those arguments. As l
        "referenceBases": "A",
        "alternateBases": ["-"]}}}
 
-    # the output edge
+    # the output edge to Biosample containing the CallSet properties
     {"label": "variantInBiosample",
      "fromLabel": "Variant",
      "from": "variant:1:10521380:10521380:A:-"
@@ -185,3 +185,41 @@ If you notice, they take the same arguments and values for those arguments. As l
      "properties": {
        "location": "ohsu",
        "method": "prime"}}
+
+## edge_source / edge_terminal
+
+When you have a message that represents an edge, you have to specify which property is the source and which is the terminal. You can do this by declaring the `edge_source` and `edge_terminal`. They also take the form of an `EdgeDescription`, so as long as the `edge_label` matches in each they will be joined into an edge.
+
+    # a GeneSynonym is an edge from a GeneDatabase to a Gene
+    - label: GeneSynonym
+      role: Edge
+      gid: "geneSynonym:{{symbol}}"
+      actions:
+        - field: inDatabase
+          edge_source:
+            edge_label: synonymForGene
+            destination_label: GeneDatabase
+        - field: synonymFor
+          edge_terminal:
+            edge_label: synonymForGene
+            destination_label: Gene
+
+Sometimes you have one half of an edge in one message, and the other half in another. In cases like this, you can specify the `edge_source` in one Protograph type and `edge_terminal` in another. As long as the `edge_label` matches the two messages will be fused into a single output edge.
+
+## inner_vertex
+
+There are times when a message contains another vertex inside of it. It is natural to make an edge from the outer vertex to the inner one, which you can declare with `inner_vertex`:
+
+- label: Biosample
+  role: Vertex
+  gid: "biosample:{{datasetId}}:{{name}}"
+  actions:
+    - field: disease
+      inner_vertex:
+        edge_label: termForDisease
+        destination_label: OntologyTerm
+        outer_id: biosampleId
+
+Now, when Protograph receives a message of the type Biosample, it will pull out the map under the `disease` key and pass it to the Protograph description for OntologyTerm.
+
+In this way input messages and output vertexes and edges are not one to one. 
