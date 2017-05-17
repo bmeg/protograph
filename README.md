@@ -31,7 +31,7 @@ While vertexes and edges can both have edges, they differ in that a vertex just 
      "referenceBases": "A",
      "alternateBases": ["-"]}
 
-    # output from Protograph
+    # output from Protograph (both a vertex and an edge)
     {"label": "Variant"
      "gid": "variant:1:10521380:10521380:A:-"
      "properties": {
@@ -51,7 +51,7 @@ While vertexes and edges can both have edges, they differ in that a vertex just 
 
 ## protograph works with typed messages
 
-Protograph directives are partitioned by type. When creating a protobuffer schema you declare a series of message types, and in `protograph.yml` you refer to these type names when declaring how each message will be processed.
+Protograph directives are partitioned by type. When creating a protobuffer schema you declare a series of message types, and in `protograph.yml` you refer to these type names when declaring how each message will be processed. This lives under the `label` key:
 
     # a typed message
     - label: Variant
@@ -81,7 +81,7 @@ Gids are used to link messages together. Typically a message will contain a gid 
 
 ## transformations are comprised of directives
 
-In general, you specify a transformation for a given message type by describing what to do for each key in the message. Each key can contain any arbitrary data, so directives must also handle a variety of message types. Describing what the directives are, what they do, and how to invoke them is the bulk of understanding how to use Protograph.
+In general, you specify a transformation for a given message type by describing what to do for each key in the message. Each key can contain any arbitrary data, so directives must also handle a variety of message types. Understanding what directives are available, what they do, and how to invoke them is the bulk of understanding how to use Protograph.
 
     # how to transform a variant
     actions:
@@ -93,5 +93,12 @@ In general, you specify a transformation for a given message type by describing 
 
 Protograph has a protocol buffer schema defined [here](https://github.com/bmeg/protograph/blob/master/src/main/proto/protograph/schema/Protograph.proto).
 
+The outer wrapper is the `TransformMessage`. It contains a `label`, a `role`, a `gid`, and all the `properties`. The `label` is simply the type of the incoming message ('Variant' in our examples above). The `role` is the output type, either `Vertex`, `Edge` or `PartialEdge`. The `gid` entry provides a template with which to build a gid from data contained inside the message. These are explained above.
 
+So already, the first section of our Protograph description is complete:
 
+    - label: Variant
+      role: Vertex
+      gid: "variant:{{referenceName}}:{{start}}:{{end}}:{{referenceBases}}:{{alternateBases}}"
+
+The real core of the Protograph description are the `actions`. 
