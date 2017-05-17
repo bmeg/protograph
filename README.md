@@ -1,5 +1,7 @@
 # protograph
 
+Transform a stream of messages into a graph
+
 ![PROTOGRAPH](https://github.com/bmeg/protograph/blob/master/resources/public/connections.jpg)
 
 # what is protograph?
