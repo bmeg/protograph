@@ -1,7 +1,9 @@
 (ns protograph.core
   (:require
+   [clojure.string :as string]
    [cheshire.core :as json]
    [taoensso.timbre :as log]
+   [clojure.tools.cli :as cli]
    [protograph.kafka :as kafka])
   (:import
    [protograph Protograph ProtographEmitter]))
@@ -68,12 +70,31 @@
    :mc3 ["mc3.ga4gh.VariantAnnotation" "mc3.ga4gh.Variant" "mc3.ga4gh.CallSet"]
    :tcga ["tcga.IndividualCohort" "tcga.Biosample" "tcga.GeneExpression" "tcga.Individual"]})
 
+(def parse-args
+  [["-p" "--protograph PROTOGRAPH" "path to protograph.yml"
+    :default "protograph.yml"]
+   ["-k" "--kafka KAFKA" "host for kafka server"
+    :default "localhost:9092"]
+   ["-t" "--topic TOPIC" "input topic to read from"]
+   ["-x" "--prefix PREFIX" "output topic prefix"
+    :default "protograph"]])
+
+(defn assoc-env
+  [config env]
+  (-> config
+      (assoc-in [:protograph :prefix] (:prefix env))
+      (assoc-in [:kafka :host] (:kafka env))))
+
 (defn -main
   [& args]
-  (let [config default-config
-        protograph (load (get-in config [:protograph :path]))]
-    (mapv
-     (fn [[key topics]]
-       (log/info "devouring" (name key))
-       (transform-topics config protograph topics))
-     bmeg-topics)))
+  (let [env (:options (cli/parse-opts args parse-args))
+        topics (string/split (:topic env) #" +")
+        config (assoc-env default-config env)
+        protograph (load
+                    (or
+                     (:protograph env)
+                     (get-in config [:protograph :path])))]
+    (log/info env)
+    (log/info topics)
+    (log/info config)
+    (transform-topics config protograph topics)))
