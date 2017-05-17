@@ -6,7 +6,7 @@ Transform a stream of messages into a graph
 
 # what is protograph?
 
-Protograph is a protocol for describing the transformation from any given schema into a set of graph vertexes and edges. 
+Protograph is a protocol for transforming messages encoded in any given schema into a set of graph vertexes and edges. 
 
 Input for Protograph is a stream of messages described in a [Protocol Buffers schema](https://developers.google.com/protocol-buffers/), and a `protograph.yml` file that describes how to transform these messages into vertexes and edges.
 
