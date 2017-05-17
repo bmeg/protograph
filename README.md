@@ -21,6 +21,7 @@ To Protograph, vertexes and edges are able to contain properties: ie, key/value 
 * list of any mixed values
 * map of strings to any value (string, number, list or map)
 
+
     # a message representing a single Variant
     {"sample": "biosample:CCLE:1321N1_CENTRAL_NERVOUS_SYSTEM",
      "referenceName": "1",
