@@ -246,7 +246,7 @@ To run `Protograph`, first install [Leiningen](https://leiningen.org/), then run
 
     lein run --protograph path/to/protograph.yml --topic "topic1 topic2 topic3"
 
-This will by default output to the topics `protograph.Vertex` and `protograph.Edge`. To change the prefix for these topics pass in something under the `--prefix` key:
+This will by default output to the Kafka topics `protograph.Vertex` and `protograph.Edge`. To change the prefix for these topics pass in something under the `--prefix` key:
 
     # this will output to the topics institutional.project.Vertex
     # and institutional.project.Edge
@@ -254,4 +254,4 @@ This will by default output to the topics `protograph.Vertex` and `protograph.Ed
 
 If you need to change the kafka host, pass it in under `--kafka`:
 
-    lein run --protograph path/to/protograph.yml --topic "topic1 topic2 topic3" --prefix institutional.project --kafka 10.96.11.82:9092
+    lein run --protograph path/to/protograph.yml --kafka 10.96.11.82:9092 --topic "topic1 topic2 topic3"

@@ -95,6 +95,5 @@
                      (:protograph env)
                      (get-in config [:protograph :path])))]
     (log/info env)
-    (log/info topics)
     (log/info config)
     (transform-topics config protograph topics)))
