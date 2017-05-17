@@ -93,12 +93,40 @@ In general, you specify a transformation for a given message type by describing 
 
 Protograph has a protocol buffer schema defined [here](https://github.com/bmeg/protograph/blob/master/src/main/proto/protograph/schema/Protograph.proto).
 
-The outer wrapper is the `TransformMessage`. It contains a `label`, a `role`, a `gid`, and all the `properties`. The `label` is simply the type of the incoming message ('Variant' in our examples above). The `role` is the output type, either `Vertex`, `Edge` or `PartialEdge`. The `gid` entry provides a template with which to build a gid from data contained inside the message. These are explained above.
+The outer wrapper is the `TransformMessage`. It contains a `label`, a `role`, a `gid`, and all the `actions` which will be applied to the incoming message. The `label` is simply the type of the incoming message ('Variant' in our examples above). The `role` is the output type, either `Vertex`, `Edge` or `PartialEdge`. The `gid` entry provides a template with which to build a gid from data contained inside the message. These are explained above.
 
 So already, the first section of our Protograph description is complete:
 
     - label: Variant
       role: Vertex
       gid: "variant:{{referenceName}}:{{start}}:{{end}}:{{referenceBases}}:{{alternateBases}}"
+      actions:
+        - ...
 
-The real core of the Protograph description are the `actions`. 
+The real core of the Protograph description live under the `actions` key. Let's take a look at these now.
+
+## remote_edges
+
+This is the most common edge type. When you declare this directive, Protograph will treat all values that live under this key as references to other vertexes. It can be a single value, or it can be a list of values. Each value will be treated as a gid to another vertex.
+
+In order to specify how to handle the `remote_edges`, there are minimum two pieces of information you must provide: the new `edge_label` and the `destination_label` of the referenced vertex. You can do that like this:
+
+    - field: inFamily
+      remote_edges:
+        edge_label: geneInFamily
+        destination_label: GeneFamily
+
+Both `edge_label` and `destination_label` are part of a common schema message called `EdgeDescription`. `EdgeDescription` has a couple of other fields, `embedded_in` and a list of fields called `lift_fields`.
+
+Many times the referenced gid you are looking for is embedded inside another map in the input message. For this you can specify the `embedded_in` field:
+
+    # gid is embedded inside another map
+    "callSets": [{"callsetId": "callset:someInstitution:someMethod"}]
+
+    # direct Protograph to unembed it
+    - field: callSets
+      remote_edges:
+        edge_label: inCallSet
+        destination_label: CallSet
+        embedded_in: callSetId
+    
