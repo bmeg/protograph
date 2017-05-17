@@ -8,6 +8,8 @@ Protograph is a protocol for describing the transformation from any given schema
 
 Input for Protograph is a stream of messages described in a [Protocol Buffers schema](https://developers.google.com/protocol-buffers/), and a `protograph.yml` file that describes how to transform these messages into vertexes and edges.
 
+Output is a list of vertexes and edges, in a schema of their own.
+
 To a small degree the `protograph.yml` description concerns serialization of the actual values stored in the vertex or edge, but largely Protograph is concerned with how to *link* the separate entities together. In order to create a graph out of many separate messages, the values in each message that describe their identity and links to other entities must be consistent with one another. Largely this consistency is generated before the messages arrive to be processed by Protograph, but Protograph maintains this consistency and in some cases generates additional references during its processing.
 
 In general when referring to *links* this can mean a vertex connecting through an edge to another vertex, but it could also mean an edge connecting to either terminal vertex or even a partial edge referencing its other half.
@@ -21,23 +23,33 @@ To Protograph, vertexes and edges are able to contain properties: ie, key/value 
 * list of any mixed values
 * map of strings to any value (string, number, list or map)
 
-While vertexes and edges can both have edges, they differ in that a vertex just has a gid and label, whereas an edge contains in addition a gid for both `from` and `to` terminals, as well as the vertex label of each terminal.
+While vertexes and edges can both have properties, they differ in that a vertex just has a `gid` and `label`, whereas an edge contains in addition a gid for both `from` and `to` terminals, as well as the vertex label of each terminal (`fromLabel` and `toLabel`).
 
     # input to Protograph representing a single Variant
     {"sample": "biosample:CCLE:1321N1_CENTRAL_NERVOUS_SYSTEM",
      "referenceName": "1",
-     "start": "10521380",
-     "end": "10521380",
+     "start": 10521380,
+     "end": 10521380,
      "referenceBases": "A",
      "alternateBases": ["-"]}
+
+    # protograph.yml representing the transformation
+    - label: Variant
+      role: Vertex
+      gid: "variant:{{referenceName}}:{{start}}:{{end}}:{{referenceBases}}:{{alternateBases}}"
+      actions: 
+        - field: sample
+          remote_edges:
+            edge_label: variantInBiosample
+            destination_label: Biosample
 
     # output from Protograph (both a vertex and an edge)
     {"label": "Variant"
      "gid": "variant:1:10521380:10521380:A:-"
      "properties": {
        "referenceName": "1",
-       "start": "10521380",
-       "end": "10521380",
+       "start": 10521380,
+       "end": 10521380,
        "referenceBases": "A",
        "alternateBases": ["-"]}}}
 
@@ -58,16 +70,16 @@ Protograph directives are partitioned by type. When creating a protobuffer schem
 
 ## each message has a role
 
-When handling messages as they come in, some of the messages translate directly to vertexes, others are edges, while even others are "partial edges": representing one terminal or another (incoming or outgoing). The role of a message is distinct from the label of a message: the label represents the input type, whereas the role reflects its place in the output.
+When handling messages as they come in, some of the messages translate directly to vertexes, others are edges. The role of a message is distinct from the label of a message: the label represents the input type, whereas the role reflects its place in the output.
 
-Currently there are three roles, `Vertex`, `Edge` and `Partial Edge`. In the future more may appear, but for now this is sufficient.
+Currently there are two roles, `Vertex` and `Edge`. In the future more may appear, but for now this is sufficient.
 
     # this message will become a vertex
     role: Vertex
 
 ## each message type has a gid
 
-Gids are one of the key concepts of Protograph. A gid (global identifier) refers to an identifier that can be entirely constructed *from the message itself*. Each message type declares a gid template that accepts the message as an argument and constructs the gid from values found within.
+Gids are one of the key concepts of Protograph. A `gid` (global identifier) refers to an identifier that can be entirely constructed *from the message itself*. Each message type declares a gid template that accepts the message as an argument and constructs the gid from values found within.
 
     # this gid is composed of several properties
     gid: "variant:{{referenceName}}:{{start}}:{{end}}:{{referenceBases}}:{{alternateBases}}"
@@ -93,7 +105,7 @@ In general, you specify a transformation for a given message type by describing 
 
 Protograph has a protocol buffer schema defined [here](https://github.com/bmeg/protograph/blob/master/src/main/proto/protograph/schema/Protograph.proto).
 
-The outer wrapper is the `TransformMessage`. It contains a `label`, a `role`, a `gid`, and all the `actions` which will be applied to the incoming message. The `label` is simply the type of the incoming message ('Variant' in our examples above). The `role` is the output type, either `Vertex`, `Edge` or `PartialEdge`. The `gid` entry provides a template with which to build a gid from data contained inside the message. These are explained above.
+The outer wrapper is the `TransformMessage`. It contains a `label`, a `role`, a `gid`, and all the `actions` which will be applied to the incoming message. The `label` is simply the type of the incoming message ('Variant' in our examples above). The `role` is the output type, either `Vertex` or `Edge`. The `gid` entry provides a template with which to build a gid from data contained inside the message. These are explained above.
 
 So already, the first section of our Protograph description is complete:
 
@@ -116,6 +128,8 @@ In order to specify how to handle the `remote_edges`, there are minimum two piec
         edge_label: geneInFamily
         destination_label: GeneFamily
 
+This will take whatever is in the field `inFamily` in the incoming message and create an edge to GeneFamily labeled `geneInFamily` with the source as the incoming message.
+
 Both `edge_label` and `destination_label` are part of a common schema message called `EdgeDescription`. `EdgeDescription` has another optional field, `embedded_in`.
 
 ### embedded_in
@@ -131,6 +145,26 @@ Many times the referenced gid you are looking for is embedded inside another map
         edge_label: compoundTargetsGene
         destination_label: Gene
         embedded_in: geneId
+
+## edge_source / edge_terminal
+
+When you have a message that represents an edge, you have to specify which property is the source and which is the terminal. You can do this by declaring the `edge_source` and `edge_terminal`. They also take the form of an `EdgeDescription`, so as long as the `edge_label` matches in each they will be joined into an edge.
+
+    # a GeneSynonym is an edge from a GeneDatabase to a Gene
+    - label: GeneSynonym
+      role: Edge
+      gid: "geneSynonym:{{symbol}}"
+      actions:
+        - field: inDatabase
+          edge_source:
+            edge_label: synonymForGene
+            destination_label: GeneDatabase
+        - field: synonymFor
+          edge_terminal:
+            edge_label: synonymForGene
+            destination_label: Gene
+
+Sometimes you have one half of an edge in one message, and the other half in another. In cases like this, you can specify the `edge_source` in one Protograph type and `edge_terminal` in another. As long as the `edge_label` matches the two messages will be fused into a single output edge.
 
 ## link_through
 
@@ -150,14 +184,14 @@ Another common case to deal with is where you have a field that references anoth
 
 This is a case for `link_through`, and its associate `edge_terminal`. The idea is to specify the link you want in the `link_through`, and in the Protograph description for the message you are "going through" you specify how to create the `edge_terminal`:
 
-    # Protograph link_through in Variant
+    # link_through in Variant
     - field: calls
       link_through:
         edge_label: variantInBiosample
         destination_label: Biosample
         embedded_in: callSetId
 
-    # Protograph edge_terminal in CallSet
+    # edge_terminal in CallSet
     - field: biosampleId
       edge_terminal:
         edge_label: variantInBiosample
@@ -186,40 +220,20 @@ If you notice, they take the same arguments and values for those arguments. As l
        "location": "ohsu",
        "method": "prime"}}
 
-## edge_source / edge_terminal
-
-When you have a message that represents an edge, you have to specify which property is the source and which is the terminal. You can do this by declaring the `edge_source` and `edge_terminal`. They also take the form of an `EdgeDescription`, so as long as the `edge_label` matches in each they will be joined into an edge.
-
-    # a GeneSynonym is an edge from a GeneDatabase to a Gene
-    - label: GeneSynonym
-      role: Edge
-      gid: "geneSynonym:{{symbol}}"
-      actions:
-        - field: inDatabase
-          edge_source:
-            edge_label: synonymForGene
-            destination_label: GeneDatabase
-        - field: synonymFor
-          edge_terminal:
-            edge_label: synonymForGene
-            destination_label: Gene
-
-Sometimes you have one half of an edge in one message, and the other half in another. In cases like this, you can specify the `edge_source` in one Protograph type and `edge_terminal` in another. As long as the `edge_label` matches the two messages will be fused into a single output edge.
-
 ## inner_vertex
 
 There are times when a message contains another vertex inside of it. It is natural to make an edge from the outer vertex to the inner one, which you can declare with `inner_vertex`:
 
-- label: Biosample
-  role: Vertex
-  gid: "biosample:{{datasetId}}:{{name}}"
-  actions:
-    - field: disease
-      inner_vertex:
-        edge_label: termForDisease
-        destination_label: OntologyTerm
-        outer_id: biosampleId
+    - label: Biosample
+      role: Vertex
+      gid: "biosample:{{datasetId}}:{{name}}"
+      actions:
+        - field: disease
+          inner_vertex:
+            edge_label: termForDisease
+            destination_label: OntologyTerm
+            outer_id: biosampleId
 
 Now, when Protograph receives a message of the type Biosample, it will pull out the map under the `disease` key and pass it to the Protograph description for OntologyTerm.
 
-In this way input messages and output vertexes and edges are not one to one. 
+In this way input messages are not one to one with output vertexes and edges. One message can produce many vertexes and edges, or a single edge or vertex can emerge from many separate messages.
