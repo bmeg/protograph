@@ -12,23 +12,27 @@
   [path]
   (Protograph/loadProtograph path))
 
-(defn build-edge-gid
+(defn build-edge-map
   [edge]
+  {:label (.label edge)
+   :fromLabel (.fromLabel edge)
+   :toLabel (.toLabel edge)
+   :from (.from edge)
+   :to (.to edge)
+   :properties (.properties edge)})
+
+(defn build-edge-gid
+  [{:keys [from label to]}]
   (str
-   "(" (.from edge)
-   ")--" (.label edge)
-   "->(" (.to edge) ")"))
+   "(" from
+   ")--" label
+   "->(" to ")"))
 
 (defn embed-gid
   [edge]
-  (let [gid (build-edge-gid edge)]
-    {:gid gid
-     :label (.label edge)
-     :fromLabel (.fromLabel edge)
-     :toLabel (.toLabel edge)
-     :from (.from edge)
-     :to (.to edge)
-     :properties (.properties edge)}))
+  (let [out (build-edge-map edge)
+        gid (build-edge-gid out)]
+    (assoc out :gid gid)))
 
 (defn emitter
   [emit-vertex emit-edge]
