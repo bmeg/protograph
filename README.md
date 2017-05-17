@@ -21,14 +21,33 @@ To Protograph, vertexes and edges are able to contain properties: ie, key/value 
 * list of any mixed values
 * map of strings to any value (string, number, list or map)
 
+While vertexes and edges can both have edges, they differ in that a vertex just has a gid and label, whereas an edge contains in addition a gid for both `from` and `to` terminals, as well as the vertex label of each terminal.
 
-    # a message representing a single Variant
+    # input to Protograph representing a single Variant
     {"sample": "biosample:CCLE:1321N1_CENTRAL_NERVOUS_SYSTEM",
      "referenceName": "1",
      "start": "10521380",
      "end": "10521380",
      "referenceBases": "A",
      "alternateBases": ["-"]}
+
+    # output from Protograph
+    {"label": "Variant"
+     "gid": "variant:1:10521380:10521380:A:-"
+     "properties": {
+       "referenceName": "1",
+       "start": "10521380",
+       "end": "10521380",
+       "referenceBases": "A",
+       "alternateBases": ["-"]}}}
+
+    {"label": "variantInBiosample",
+     "fromLabel": "Variant",
+     "from": "variant:1:10521380:10521380:A:-"
+     "toLabel": "Biosample",
+     "to": "biosample:CCLE:1321N1_CENTRAL_NERVOUS_SYSTEM",
+     "gid": "(variant:1:10521380:10521380:A:-)->(biosample:CCLE:1321N1_CENTRAL_NERVOUS_SYSTEM)",
+     "properties": {}}
 
 ## protograph works with typed messages
 
