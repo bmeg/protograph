@@ -8,15 +8,36 @@
   (:import
    [protograph Protograph ProtographEmitter]))
 
-(defn load
+(defn load-protograph
   [path]
   (Protograph/loadProtograph path))
+
+(defn build-edge-gid
+  [edge]
+  (str
+   "(" (.from edge)
+   ")--" (.label edge)
+   "->(" (.to edge) ")"))
+
+(defn embed-gid
+  [edge]
+  (let [gid (build-edge-gid edge)]
+    {:gid gid
+     :label (.label edge)
+     :fromLabel (.fromLabel edge)
+     :toLabel (.toLabel edge)
+     :from (.from edge)
+     :to (.to edge)
+     :properties (.properties edge)}))
 
 (defn emitter
   [emit-vertex emit-edge]
   (reify ProtographEmitter
-    (emitVertex [_ vertex] (emit-vertex vertex))
-    (emitEdge [_ edge] (emit-edge edge))))
+    (emitVertex [_ vertex]
+      (emit-vertex vertex))
+    (emitEdge [_ edge]
+      (emit-edge
+       (embed-gid edge)))))
 
 (defn process
   [protograph emit label data]
@@ -26,9 +47,11 @@
   [producer vertex-topic edge-topic]
   (emitter
    (fn [vertex]
-     (kafka/send producer vertex-topic (Protograph/writeJSON vertex)))
+     (log/info vertex)
+     (kafka/send-message producer vertex-topic (Protograph/writeJSON vertex)))
    (fn [edge]
-     (kafka/send producer edge-topic (Protograph/writeJSON edge)))))
+     (log/info edge)
+     (kafka/send-message producer edge-topic (Protograph/writeJSON edge)))))
 
 (defn transform-message
   [protograph emit message]
@@ -52,6 +75,8 @@
         group-id (get-in config [:kafka :consumer :group-id])
         consumer (kafka/consumer host group-id topics)
         producer (kafka/producer host)]
+    (log/info "group-id" group-id)
+    (log/info "subscribed to" topics)
     (transform-kafka config protograph consumer producer)))
 
 (def default-config
@@ -90,7 +115,7 @@
   (let [env (:options (cli/parse-opts args parse-args))
         topics (string/split (:topic env) #" +")
         config (assoc-env default-config env)
-        protograph (load
+        protograph (load-protograph
                     (or
                      (:protograph env)
                      (get-in config [:protograph :path])))]

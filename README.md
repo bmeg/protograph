@@ -60,7 +60,7 @@ While vertexes and edges can both have properties, they differ in that a vertex 
      "from": "variant:1:10521380:10521380:A:-"
      "toLabel": "Biosample",
      "to": "biosample:CCLE:1321N1_CENTRAL_NERVOUS_SYSTEM",
-     "gid": "(variant:1:10521380:10521380:A:-)->(biosample:CCLE:1321N1_CENTRAL_NERVOUS_SYSTEM)",
+     "gid": "(variant:1:10521380:10521380:A:-)--variantInBiosample->(biosample:CCLE:1321N1_CENTRAL_NERVOUS_SYSTEM)",
      "properties": {}}
 
 ## protograph works with typed messages

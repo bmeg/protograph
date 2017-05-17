@@ -38,12 +38,14 @@
    (let [config (merge string-serializer {"bootstrap.servers" host} props)]
      (new KafkaProducer config))))
 
-(defn send
+(defn send-message
   [producer topic message]
   (let [record (new ProducerRecord topic (uuid) message)]
     (.send producer record)))
 
 (defn consumer
+  ([] (consumer "localhost:9092"))
+  ([host] (consumer host (uuid)))
   ([host group-id] (consumer host group-id []))
   ([host group-id topics] (consumer host group-id topics {}))
   ([host group-id topics props]
@@ -58,15 +60,19 @@
      devour)))
 
 (defn consume
-  [consumer handle-message]
+  [in handle-message]
   (while true
-    (let [records (.poll consumer 1000)]
+    (let [records (.poll in 1000)]
       (doseq [record records]
         (handle-message record)))))
 
+(defn subscribe
+  [in topics]
+  (.subscribe in topics))
+
 (defn list-topics
-  [consumer]
-  (let [topic-map (into {} (.listTopics consumer))]
+  [in]
+  (let [topic-map (into {} (.listTopics in))]
     (keys topic-map)))
 
 (defn path->topic
@@ -90,7 +96,7 @@
 (defn file->stream
   [out file topic]
   (doseq [line (line-seq (io/reader file))]
-    (send out topic line)))
+    (send-message out topic line)))
 
 (defn dir->streams
   [out path]
