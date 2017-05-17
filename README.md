@@ -242,7 +242,7 @@ In this way input messages are not one to one with output vertexes and edges. On
 
 # running protograph
 
-To run `Protograph`, first install [Leiningen](https://leiningen.org/), then run:
+To run `Protograph` you must have access to a Kafka node with some topics to import. First install [Leiningen](https://leiningen.org/), then clone this repo and run in the root:
 
     lein run --protograph path/to/protograph.yml --topic "topic1 topic2 topic3"
 
