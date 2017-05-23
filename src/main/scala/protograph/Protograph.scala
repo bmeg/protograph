@@ -442,11 +442,18 @@ case class Protograph(transforms: Seq[TransformMessage]) {
       inner.asInstanceOf[Map[String, Any]].map { pair =>
         val key = map.prefix + "." + pair._1
         val value = if (map.liftFields) {
-          pair._2.asInstanceOf[Seq[Any]].headOption.getOrElse { None }
+          try {
+            pair._2.asInstanceOf[List[Any]].head
+          } catch {
+            case _: Throwable => {
+              println("not a list:", pair._2.toString)
+              pair._2
+            }
+          }
         } else {
           pair._2
         }
-        (key -> pair._2)
+        (key -> value)
       }
     }.getOrElse(Map[String, Any]())
   }
