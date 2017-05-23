@@ -101,18 +101,17 @@
   (empty? (.poll in 1000)))
 
 (defn purge-topic!
-  [config topic]
-  (let [zk (zookeeper-utils (:host config))]
-    (set-topic-config! zk topic {"retention.ms" "1000"})
-    (loop [n 0]
-      (println "looping!" n)
-      (let [in (consumer (assoc config :topics [topic]))]
-        (if (consumer-empty? in)
-          (set-topic-config! zk topic {"retention.ms" "-1"})
-          (do
-            (.close in)
-            (Thread/sleep 1000)
-            (recur (inc n))))))))
+  [zk config topic]
+  (set-topic-config! zk topic {"retention.ms" "1000"})
+  (loop [n 0]
+    (println "looping!" n)
+    (let [in (consumer (assoc config :topics [topic]))]
+      (if (consumer-empty? in)
+        (set-topic-config! zk topic {"retention.ms" "-1"})
+        (do
+          (.close in)
+          (Thread/sleep 1000)
+          (recur (inc n)))))))
 
 (defn path->topic
   [path]
@@ -151,13 +150,26 @@
         spout (producer host)]
     (dir->streams spout path)))
 
+(defn kafka-host
+  (or (System/getenv "KAFKA_HOST") "localhost"))
+
 (def default-config
-  {:host (or (System/getenv "KAFKA_HOST") "localhost:9092")
+  {:host (str (kafka-host) ":9092")
    :consumer
    {:group-id (uuid)}})
 
 (defn -main
   [& args]
-  (doseq [path args]
-    (log/info "spouting" path)
-    (spout-dir default-config path)))
+  (condp = (first args)
+    "spout"
+    (doseq [path (rest args)]
+      (log/info "spouting" path)
+      (spout-dir default-config path))
+
+    "purge"
+    (let [zk (zookeeper-utils (str (kafka-host) ":2181"))]
+      (doseq [topic (rest args)]
+        (log/info "purging" topic)
+        (purge-topic zk topic))
+      (log/info "closing zookeeper connection")
+      (.close zk))))
