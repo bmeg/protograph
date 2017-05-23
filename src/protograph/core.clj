@@ -77,7 +77,7 @@
   [config protograph topics]
   (let [host (get-in config [:kafka :host])
         group-id (get-in config [:kafka :consumer :group-id])
-        consumer (kafka/consumer host group-id topics)
+        consumer (kafka/consumer {:host host :group-id group-id :topics topics})
         producer (kafka/producer host)]
     (log/info "group-id" group-id)
     (log/info "subscribed to" topics)
