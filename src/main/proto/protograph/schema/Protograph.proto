@@ -44,6 +44,7 @@ message SerializeField {
 message SpliceMap {
   string prefix = 1;
   bool lift_fields = 2;
+  string delimiter = 3;
 }
 
 message InnerVertex {

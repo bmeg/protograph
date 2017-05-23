@@ -440,7 +440,7 @@ case class Protograph(transforms: Seq[TransformMessage]) {
   def spliceMap(map: SpliceMap) (field: Option[Any]): Map[String, Any] = {
     field.map { inner =>
       inner.asInstanceOf[Map[String, Any]].map { pair =>
-        val key = map.prefix + "." + pair._1
+        val key = map.prefix + (map.delimiter || ":") + pair._1
         val value = if (map.liftFields) {
           try {
             pair._2.asInstanceOf[List[Any]].head
