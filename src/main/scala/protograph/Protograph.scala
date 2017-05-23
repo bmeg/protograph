@@ -441,6 +441,11 @@ case class Protograph(transforms: Seq[TransformMessage]) {
     field.map { inner =>
       inner.asInstanceOf[Map[String, Any]].map { pair =>
         val key = map.prefix + "." + pair._1
+        val value = if (map.liftFields) {
+          pair._2.asInstanceOf[Seq[Any]].headOption.getOrElse { None }
+        } else {
+          pair._2
+        }
         (key -> pair._2)
       }
     }.getOrElse(Map[String, Any]())

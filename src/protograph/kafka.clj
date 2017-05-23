@@ -176,6 +176,6 @@
     (let [zk (zookeeper-utils (str (kafka-host) ":2181"))]
       (doseq [topic (rest args)]
         (log/info "purging" topic)
-        (purge-topic! zk {} topic))
+        (purge-topic! zk {:host (str (kafka-host) ":9092")} topic))
       (log/info "closing zookeeper connection")
       (.close zk))))
