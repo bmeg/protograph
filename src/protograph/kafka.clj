@@ -47,9 +47,6 @@
 
 (defn consumer
   ([] (consumer {}))
-  ;; ([host] (consumer host (uuid)))
-  ;; ([host group-id] (consumer host group-id []))
-  ;; ([host group-id topics] (consumer host group-id topics {}))
   ([{:keys [host group-id topics props]}]
    (let [config (merge
                  consumer-defaults
@@ -128,7 +125,7 @@
   [path]
   "extracts the penultimate element out of a path"
   (let [parts (string/split path #"\.")]
-    (-> parts reverse (drop 1) first)))
+    (->> parts reverse (drop 1) first)))
 
 (defn topic->label
   [topic]
@@ -141,9 +138,15 @@
   (doseq [line (line-seq (io/reader file))]
     (send-message out topic line)))
 
+(defn dir->files
+  [path]
+  (filter
+   #(.isFile %)
+   (file-seq (io/file path))))
+
 (defn dir->streams
   [out path]
-  (let [files (filter #(.isFile %) (file-seq (io/file path)))]
+  (let [files (dir->files path)]
     (doseq [file files]
       (let [topic (path->topic (.getName file))]
         (log/info "populating new topic" topic)
@@ -157,7 +160,9 @@
 
 (defn kafka-host
   []
-  (or (System/getenv "KAFKA_HOST") "localhost"))
+  (or
+   (System/getenv "KAFKA_HOST")
+   "localhost"))
 
 (def default-config
   {:host (str (kafka-host) ":9092")

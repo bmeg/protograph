@@ -1,9 +1,10 @@
 (ns protograph.core
   (:require
    [clojure.string :as string]
+   [clojure.java.io :as io]
+   [clojure.tools.cli :as cli]
    [cheshire.core :as json]
    [taoensso.timbre :as log]
-   [clojure.tools.cli :as cli]
    [protograph.kafka :as kafka])
   (:import
    [protograph Protograph ProtographEmitter]))
@@ -57,6 +58,16 @@
      (log/info edge)
      (kafka/send-message producer edge-topic (Protograph/writeJSON edge)))))
 
+(defn file-emitter
+  [vertex-writer edge-writer]
+  (emitter
+   (fn [vertex]
+     (log/info vertex)
+     (.write vertex-writer (Protograph/writeJSON vertex)))
+   (fn [edge]
+     (log/info edge)
+     (.write edge-writer (Protograph/writeJSON edge)))))
+
 (defn transform-message
   [protograph emit message]
   (let [label (kafka/topic->label (.topic message))
@@ -83,6 +94,19 @@
     (log/info "subscribed to" topics)
     (transform-kafka config protograph consumer producer)))
 
+(defn transform-dir
+  [config protograph input output]
+  (let [vertex-out (io/writer (str output ".Vertex.json"))
+        edge-out (io/writer (str output ".Edge.json"))
+        emit (file-emitter vertex-out edge-out)]
+    (doseq [file (kafka/dir->files input)]
+      (let [label (kafka/path->label (.getName file))]
+        (doseq [line (line-seq (io/reader file))]
+          (let [data (Protograph/readJSON line)]
+            (process protograph emit label data)))))
+    (.close vertex-out)
+    (.close edge-out)))
+
 (def default-config
   {:protograph
    {:path "../gaia-bmeg/bmeg.protograph.yml"
@@ -103,25 +127,28 @@
     :default "protograph.yml"]
    ["-k" "--kafka KAFKA" "host for kafka server"
     :default "localhost:9092"]
+   ["-i" "--input INPUT" "input file or directory"]
+   ["-o" "--output OUTPUT" "prefix for output file"]
    ["-t" "--topic TOPIC" "input topic to read from"]
-   ["-x" "--prefix PREFIX" "output topic prefix"
-    :default "protograph"]])
+   ["-x" "--prefix PREFIX" "output topic prefix"]])
 
 (defn assoc-env
   [config env]
   (-> config
       (assoc-in [:protograph :prefix] (:prefix env))
-      (assoc-in [:kafka :host] (:kafka env))))
+      (assoc-in [:kafka :host] (:kafka env))
+      (assoc :command env)))
 
 (defn -main
   [& args]
   (let [env (:options (cli/parse-opts args parse-args))
-        topics (string/split (:topic env) #" +")
         config (assoc-env default-config env)
         protograph (load-protograph
                     (or
                      (:protograph env)
                      (get-in config [:protograph :path])))]
-    (log/info env)
     (log/info config)
-    (transform-topics config protograph topics)))
+    (if (:topic env)
+      (let [topics (string/split (:topic env) #" +")]
+        (transform-topics config protograph topics))
+      (transform-dir config protograph (:input env) (:output env)))))
