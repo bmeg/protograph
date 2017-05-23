@@ -250,7 +250,7 @@ Either way, start by first installing [Leiningen](https://leiningen.org/), then 
 
 To run Protograph on a directory of input files, use the `--input` and `--output` options:
 
-    lein run --protograph path/to/protograph.yml --input /path/to/input/messages.json --output /path/to/output/with/file.prefix
+    lein run --protograph path/to/protograph.yml --input /path/to/input/messages.Label.json --output /path/to/output/with/file.prefix
 
 Input files must follow a naming convention where the key into the Protograph description is the penultimate element in the file path, so something like
 
