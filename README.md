@@ -242,7 +242,32 @@ In this way input messages are not one to one with output vertexes and edges. On
 
 # running protograph
 
-To run `Protograph` you must have access to a Kafka node with some topics to import. First install [Leiningen](https://leiningen.org/), then clone this repo and run in the root:
+You can run Protograph either by transforming a directory containing input messages into Vertex and Edge output files, or by consuming a Kafka topic and emitting to another pair of Kafka topics (one for Vertex and one for Edge).
+
+Either way, start by first installing [Leiningen](https://leiningen.org/), then clone this repo and run either of the below options:
+
+## protograph transform with files
+
+To run `Protograph` on a directory of input files, use the `--input` and `--output` options:
+
+    lein run --protograph path/to/protograph.yml --input /path/to/input/messages.json --output /path/to/output/with/file.prefix
+
+Input files must follow a naming convention where the key into the Protograph description is the penultimate element in the file path, so something like
+
+    we.got.these.from.somewhere.Gene.json
+
+This will trigger processing using the Protograph directives under the `label: Gene` heading. Support for multiple path elements or namespaced messages is not currently supported.
+
+Once processing is complete, it will output two files of the form:
+
+    /path/to/output/with/file.prefix.Vertex.json
+    /path/to/output/with/file.prefix.Edge.json
+
+depending on what you passed to `--output`.
+
+## protograph transform using kafka
+
+To run `Protograph` in Kafka mode you must have access to a Kafka node with some topics to import. 
 
     lein run --protograph path/to/protograph.yml --topic "topic1 topic2 topic3"
 
