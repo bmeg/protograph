@@ -7,7 +7,9 @@
   (:import
    [java.util Properties UUID]
    [org.apache.kafka.clients.consumer KafkaConsumer ConsumerRecord]
-   [org.apache.kafka.clients.producer KafkaProducer Producer ProducerRecord]))
+   [org.apache.kafka.clients.producer KafkaProducer Producer ProducerRecord]
+   [kafka.utils ZkUtils]
+   [kafka.admin AdminUtils]))
 
 (def string-serializer
   {"key.serializer" "org.apache.kafka.common.serialization.StringSerializer"
@@ -44,15 +46,15 @@
     (.send producer record)))
 
 (defn consumer
-  ([] (consumer "localhost:9092"))
-  ([host] (consumer host (uuid)))
-  ([host group-id] (consumer host group-id []))
-  ([host group-id topics] (consumer host group-id topics {}))
-  ([host group-id topics props]
+  ([] (consumer {}))
+  ;; ([host] (consumer host (uuid)))
+  ;; ([host group-id] (consumer host group-id []))
+  ;; ([host group-id topics] (consumer host group-id topics {}))
+  ([{:keys [host group-id topics props]}]
    (let [config (merge
                  consumer-defaults
-                 {"bootstrap.servers" host
-                  "group.id" group-id}
+                 {"bootstrap.servers" (or host "localhost:9092")
+                  "group.id" (or group-id (uuid))}
                  props)
          devour (new KafkaConsumer (props/map->properties config))]
      (if-not (empty? topics)
@@ -74,6 +76,43 @@
   [in]
   (let [topic-map (into {} (.listTopics in))]
     (keys topic-map)))
+
+(defn zookeeper-utils
+  [host]
+  (ZkUtils/apply
+   (or host "localhost:2181")
+   30000 30000
+   false))
+
+(defn topic-config
+  [zookeeper topic]
+  (AdminUtils/fetchEntityConfig zookeeper "topics" topic))
+
+(defn set-topic-config!
+  [zookeeper topic config]
+  (println "setting topic config for " topic config)
+  (let [pre (props/properties->map (topic-config zookeeper topic))
+        post (props/map->properties (merge pre config))]
+    (println "topic config" topic post)
+    (AdminUtils/changeTopicConfig zookeeper topic post)))
+
+(defn consumer-empty?
+  [in]
+  (empty? (.poll in 1000)))
+
+(defn purge-topic
+  [config topic]
+  (let [zk (zookeeper-utils (:host config))]
+    (set-topic-config! zk topic {"retention.ms" "1000"})
+    (loop [n 0]
+      (println "looping!" n)
+      (let [in (consumer (assoc config :topics [topic]))]
+        (if (consumer-empty? in)
+          (set-topic-config! zk topic {"retention.ms" "-1"})
+          (do
+            (.close in)
+            (Thread/sleep 1000)
+            (recur (inc n))))))))
 
 (defn path->topic
   [path]

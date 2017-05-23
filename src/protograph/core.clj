@@ -86,8 +86,7 @@
 (def default-config
   {:protograph
    {:path "../gaia-bmeg/bmeg.protograph.yml"
-    :prefix "protograph.bmeg"
-    :output "graph.ingested"}
+    :prefix "protograph.bmeg"}
    :kafka kafka/default-config})
 
 (def bmeg-topics

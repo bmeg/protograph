@@ -9,13 +9,12 @@
                  [com.taoensso/timbre "4.8.0"]
                  [io.bmeg/protograph_2.11 "0.0.1-SNAPSHOT"]
                  [clojurewerkz/propertied "1.2.0"]
-                 [org.apache.kafka/kafka_2.10 "0.10.0.1"]]
+                 [org.apache.kafka/kafka_2.11 "0.10.0.1"]]
 ;;                  [org.apache.kafka/kafka_2.10 "0.10.0.1" :scope "test"
 ;;                   :exclusions [;io.netty/netty
 ;;                                ;log4j
 ;;                                ;org.slf4j/slf4j-api
-;;                                ;org.slf4j/slf4j-log4j12
-;; ]                  ]]
+;;                                ;org.slf4j/slf4j-log4j12]]
   :repositories [["sonatype snapshots"
                   "https://oss.sonatype.org/content/repositories/snapshots"]
                  ["sonatype releases"
