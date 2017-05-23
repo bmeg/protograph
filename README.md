@@ -248,7 +248,7 @@ Either way, start by first installing [Leiningen](https://leiningen.org/), then 
 
 ## protograph transform with files
 
-To run `Protograph` on a directory of input files, use the `--input` and `--output` options:
+To run Protograph on a directory of input files, use the `--input` and `--output` options:
 
     lein run --protograph path/to/protograph.yml --input /path/to/input/messages.json --output /path/to/output/with/file.prefix
 
@@ -267,7 +267,7 @@ depending on what you passed to `--output`.
 
 ## protograph transform using kafka
 
-To run `Protograph` in Kafka mode you must have access to a Kafka node with some topics to import. 
+To run Protograph in Kafka mode you must have access to a Kafka node with some topics to import. 
 
     lein run --protograph path/to/protograph.yml --topic "topic1 topic2 topic3"
 
