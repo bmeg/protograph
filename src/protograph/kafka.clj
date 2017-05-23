@@ -100,7 +100,7 @@
   [in]
   (empty? (.poll in 1000)))
 
-(defn purge-topic
+(defn purge-topic!
   [config topic]
   (let [zk (zookeeper-utils (:host config))]
     (set-topic-config! zk topic {"retention.ms" "1000"})
