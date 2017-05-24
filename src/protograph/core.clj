@@ -15,15 +15,15 @@
 
 (defn build-edge-map
   [edge]
-  {:label (.label edge)
-   :fromLabel (.fromLabel edge)
-   :toLabel (.toLabel edge)
-   :from (.from edge)
-   :to (.to edge)
-   :properties (.properties edge)})
+  {"label" (.label edge)
+   "fromLabel" (.fromLabel edge)
+   "toLabel" (.toLabel edge)
+   "from" (.from edge)
+   "to" (.to edge)
+   "properties" (.properties edge)})
 
 (defn build-edge-gid
-  [{:keys [from label to]}]
+  [from label to]
   (str
    "(" from
    ")--" label
@@ -32,8 +32,8 @@
 (defn embed-gid
   [edge]
   (let [out (build-edge-map edge)
-        gid (build-edge-gid out)]
-    (assoc out :gid gid)))
+        gid (build-edge-gid (get out "from") (get out "label") (get out "to"))]
+    (assoc out "gid" gid)))
 
 (defn emitter
   [emit-vertex emit-edge]
