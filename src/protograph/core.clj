@@ -63,10 +63,10 @@
   (emitter
    (fn [vertex]
      (log/info vertex)
-     (.write vertex-writer (Protograph/writeJSON vertex)))
+     (.write vertex-writer (str (Protograph/writeJSON vertex) "\n")))
    (fn [edge]
      (log/info edge)
-     (.write edge-writer (Protograph/writeJSON edge)))))
+     (.write edge-writer (str (Protograph/writeJSON edge) "\n")))))
 
 (defn transform-message
   [protograph emit message]
