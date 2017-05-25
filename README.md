@@ -119,6 +119,11 @@ So already, the first section of our Protograph description is complete:
 
 The real core of the Protograph description live under the `actions` key. Let's take a look at these now.
 
+* _remote_edges_ - when a message is a vertex that has a reference to another vertex
+* _edge_source / edge_terminal_ - when a message is an edge with references to both ends
+* _link_through_ - when a message has a reference to an intermediate message on the way to the real destination
+* _inner_vertex_ - when a message is a vertex that contains another vertex inside
+
 ## remote_edges
 
 This is the most common edge type. When you declare this directive, Protograph will treat all values that live under this key as references to other vertexes. It can be a single value, or it can be a list of values. Each value will be treated as a gid to another vertex.

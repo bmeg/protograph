@@ -276,7 +276,7 @@ case class Protograph(transforms: Seq[TransformMessage]) {
       ensureSeq(source).map { source =>
         val sourceString = source.asInstanceOf[String]
         if (existing.isEmpty) {
-          // println(proto.edgeLabel, sourceString, proto.destinationLabel)
+          // println("partial source", proto.edgeLabel, sourceString, proto.destinationLabel)
 
           val partial = Source(
             label = proto.edgeLabel,
@@ -288,7 +288,7 @@ case class Protograph(transforms: Seq[TransformMessage]) {
           addPartialSource(key) (partial)
         } else {
           existing.map { exist =>
-            // println("edgeSource", sourceString, proto.edgeLabel, exist.toLabel, exist.to, exist.properties)
+            // println("complete source", sourceString, proto.edgeLabel, exist.toLabel, exist.to, exist.properties)
 
             val edge = ProtoEdge(
               label = proto.edgeLabel,
@@ -314,7 +314,7 @@ case class Protograph(transforms: Seq[TransformMessage]) {
       val existing = partialSources.getOrElse(key, List[Source]())
       ensureSeq(terminal).map { terminal =>
         if (existing.isEmpty) {
-          // println("partialEdge", proto.edgeLabel, key, proto.destinationLabel)
+          // println("partial terminal", proto.edgeLabel, key, proto.destinationLabel)
 
           val partial = Terminal(
             label = proto.edgeLabel,
@@ -326,7 +326,7 @@ case class Protograph(transforms: Seq[TransformMessage]) {
           addPartialTerminal(key) (partial)
         } else {
           existing.map { exist =>
-            // println("edgeTerminal", exist.from.get, proto.edgeLabel, proto.destinationLabel, terminal)
+            // println("complete terminal: " + exist.fromLabel + ":" + exist.from + "--" + proto.edgeLabel + "->" + proto.destinationLabel + ":" + terminal.asInstanceOf[String])
 
             val edge = ProtoEdge(
               label = proto.edgeLabel,
