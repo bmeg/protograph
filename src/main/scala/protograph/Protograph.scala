@@ -400,8 +400,7 @@ case class Protograph(transforms: Seq[TransformMessage]) {
 
   def innerVertex(emit: ProtographEmitter) (proto: InnerVertex) (vertex: ProtoVertex) (field: Option[Any]): Map[String, Any] = {
     def extract(nest: Map[String, Any]) {
-      val embedded = nest + (proto.outerId -> vertex.gid)
-      val inner = processVertex(emit) (proto.destinationLabel) (embedded)
+      val inner = processVertex(emit) (proto.destinationLabel) (nest)
       val edge = ProtoEdge(
         label = proto.edgeLabel,
         fromLabel = vertex.label,
@@ -410,7 +409,7 @@ case class Protograph(transforms: Seq[TransformMessage]) {
         to = inner.gid
       )
 
-      emit.emitVertex(vertex)
+      // emit.emitVertex(vertex)
       emit.emitEdge(edge)
     }
 
