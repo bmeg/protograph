@@ -36,13 +36,16 @@
     (assoc out "gid" gid)))
 
 (defn emitter
-  [emit-vertex emit-edge]
-  (reify ProtographEmitter
-    (emitVertex [_ vertex]
-      (emit-vertex vertex))
-    (emitEdge [_ edge]
-      (emit-edge
-       (embed-gid edge)))))
+  ([emit-vertex emit-edge] (emitter emit-vertex emit-edge (fn [])))
+  ([emit-vertex emit-edge close-emitter]
+   (reify ProtographEmitter
+     (emitVertex [_ vertex]
+       (emit-vertex vertex))
+     (emitEdge [_ edge]
+       (emit-edge
+        (embed-gid edge)))
+     (close [_]
+       (close-emitter)))))
 
 (defn process
   [protograph emit label data]
@@ -66,7 +69,23 @@
      (.write vertex-writer (str (Protograph/writeJSON vertex) "\n")))
    (fn [edge]
      (log/info edge)
-     (.write edge-writer (str (Protograph/writeJSON edge) "\n")))))
+     (.write edge-writer (str (Protograph/writeJSON edge) "\n")))
+   (fn []
+     (.close vertex-writer)
+     (.close edge-writer))))
+
+(defn make-kafka-emitter
+  [host prefix]
+  (let [producer (kafka/producer host)
+        vertex-topic (str prefix ".Vertex")
+        edge-topic (str prefix ".Edge")]
+    (kafka-emitter producer vertex-topic edge-topic)))
+
+(defn make-file-emitter
+  [output]
+  (let [vertex-out (io/writer (str output ".Vertex.json"))
+        edge-out (io/writer (str output ".Edge.json"))]
+    (file-emitter vertex-out edge-out)))
 
 (defn transform-message
   [protograph emit message]
@@ -74,38 +93,60 @@
         data (Protograph/readJSON (.value message))]
     (process protograph emit label data)))
 
-(defn transform-kafka
-  [config protograph consumer producer]
-  (let [prefix (get-in config [:protograph :prefix])
-        vertex-topic (str prefix ".Vertex")
-        edge-topic (str prefix ".Edge")
-        emit (kafka-emitter producer vertex-topic edge-topic)]
+(defn transform-topics
+  [config protograph topics emit]
+  (let [host (get-in config [:kafka :host])
+        group-id (get-in config [:kafka :consumer :group-id])
+        consumer (kafka/consumer {:host host :group-id group-id :topics topics})]
     (kafka/consume
      consumer
      (partial transform-message protograph emit))))
 
-(defn transform-topics
-  [config protograph topics]
-  (let [host (get-in config [:kafka :host])
-        group-id (get-in config [:kafka :consumer :group-id])
-        consumer (kafka/consumer {:host host :group-id group-id :topics topics})
-        producer (kafka/producer host)]
-    (log/info "group-id" group-id)
-    (log/info "subscribed to" topics)
-    (transform-kafka config protograph consumer producer)))
-
 (defn transform-dir
-  [config protograph input output]
-  (let [vertex-out (io/writer (str output ".Vertex.json"))
-        edge-out (io/writer (str output ".Edge.json"))
-        emit (file-emitter vertex-out edge-out)]
-    (doseq [file (kafka/dir->files input)]
-      (let [label (kafka/path->label (.getName file))]
-        (doseq [line (line-seq (io/reader file))]
-          (let [data (Protograph/readJSON line)]
-            (process protograph emit label data)))))
-    (.close vertex-out)
-    (.close edge-out)))
+  [config protograph input emit]
+  (doseq [file (kafka/dir->files input)]
+    (let [label (kafka/path->label (.getName file))]
+      (doseq [line (line-seq (io/reader file))]
+        (let [data (Protograph/readJSON line)]
+          (process protograph emit label data)))))
+  (.close emit))
+
+;; (defn transform-message
+;;   [protograph emit message]
+;;   (let [label (kafka/topic->label (.topic message))
+;;         data (Protograph/readJSON (.value message))]
+;;     (process protograph emit label data)))
+
+;; (defn transform-kafka
+;;   [config protograph consumer producer]
+;;   (let [prefix (get-in config [:protograph :prefix])
+;;         vertex-topic (str prefix ".Vertex")
+;;         edge-topic (str prefix ".Edge")
+;;         emit (kafka-emitter producer vertex-topic edge-topic)]
+;;     (kafka/consume
+;;      consumer
+;;      (partial transform-message protograph emit))))
+
+;; (defn transform-topics
+;;   [config protograph topics]
+;;   (let [host (get-in config [:kafka :host])
+;;         group-id (get-in config [:kafka :consumer :group-id])
+;;         consumer (kafka/consumer {:host host :group-id group-id :topics topics})
+;;         producer (kafka/producer host)]
+;;     (transform-kafka config protograph consumer producer)))
+
+;; (defn transform-dir
+;;   [config protograph input output emit]
+;;   (let [vertex-out (io/writer (str output ".Vertex.json"))
+;;         edge-out (io/writer (str output ".Edge.json"))
+;;         emit (file-emitter vertex-out edge-out)]
+;;     (doseq [file (kafka/dir->files input)]
+;;       (let [label (kafka/path->label (.getName file))]
+;;         (doseq [line (line-seq (io/reader file))]
+;;           (let [data (Protograph/readJSON line)]
+;;             (process protograph emit label data)))))
+;;     (.close vertex-out)
+;;     (.close edge-out)))
 
 (def default-config
   {:protograph
@@ -146,9 +187,12 @@
         protograph (load-protograph
                     (or
                      (:protograph env)
-                     (get-in config [:protograph :path])))]
+                     (get-in config [:protograph :path])))
+        emit (if (:output env)
+               (make-file-emitter (:output env))
+               (make-kafka-emitter (get-in config [:kafka :host]) (:prefix env)))]
     (log/info config)
     (if (:topic env)
       (let [topics (string/split (:topic env) #" +")]
-        (transform-topics config protograph topics))
-      (transform-dir config protograph (:input env) (:output env)))))
+        (transform-topics config protograph topics emit))
+      (transform-dir config protograph (:input env) emit))))
