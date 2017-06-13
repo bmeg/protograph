@@ -111,43 +111,6 @@
           (process protograph emit label data)))))
   (.close emit))
 
-;; (defn transform-message
-;;   [protograph emit message]
-;;   (let [label (kafka/topic->label (.topic message))
-;;         data (Protograph/readJSON (.value message))]
-;;     (process protograph emit label data)))
-
-;; (defn transform-kafka
-;;   [config protograph consumer producer]
-;;   (let [prefix (get-in config [:protograph :prefix])
-;;         vertex-topic (str prefix ".Vertex")
-;;         edge-topic (str prefix ".Edge")
-;;         emit (kafka-emitter producer vertex-topic edge-topic)]
-;;     (kafka/consume
-;;      consumer
-;;      (partial transform-message protograph emit))))
-
-;; (defn transform-topics
-;;   [config protograph topics]
-;;   (let [host (get-in config [:kafka :host])
-;;         group-id (get-in config [:kafka :consumer :group-id])
-;;         consumer (kafka/consumer {:host host :group-id group-id :topics topics})
-;;         producer (kafka/producer host)]
-;;     (transform-kafka config protograph consumer producer)))
-
-;; (defn transform-dir
-;;   [config protograph input output emit]
-;;   (let [vertex-out (io/writer (str output ".Vertex.json"))
-;;         edge-out (io/writer (str output ".Edge.json"))
-;;         emit (file-emitter vertex-out edge-out)]
-;;     (doseq [file (kafka/dir->files input)]
-;;       (let [label (kafka/path->label (.getName file))]
-;;         (doseq [line (line-seq (io/reader file))]
-;;           (let [data (Protograph/readJSON line)]
-;;             (process protograph emit label data)))))
-;;     (.close vertex-out)
-;;     (.close edge-out)))
-
 (def default-config
   {:protograph
    {:path "../gaia-bmeg/bmeg.protograph.yml"
