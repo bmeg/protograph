@@ -1,15 +1,19 @@
-(ns protograph.protograph-test)
+(ns protograph.protograph-test
+  (:require
+   [clojure.test :refer :all]
+   [taoensso.timbre :as log]
+   [protograph.template :as template]))
 
 (def test-protograph
   {"Yellow"
-   [{:out "Vertex"
+   [{:out "vertex"
      :gid "yellow:{{id}}"
      :label "Yellow"
      :splice ["info"]
      :properties
-     {:primary "{{info.first}}"
+     {:primary "primary({{info.base}})"
       :under "{{over}}"}}
-    {:out "Edge"
+    {:out "edge"
      :from-label "Yellow"
      :from "yellow:{{id}}"
      :label "yellowConnects"
@@ -18,3 +22,8 @@
 
    "Green" []
    "Red" []})
+
+(deftest template-test
+  (testing "protograph template output"
+    (let [out (template/process-message test-protograph {:_label "Yellow" :id "obor" :info {:base "c" :under "x"} :over 33333 :greens {:id "thing"}})]
+      (log/info out))))

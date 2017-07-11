@@ -8,6 +8,7 @@
                  [cheshire "5.7.1"]
                  [io.forward/yaml "1.0.6"]
                  [com.taoensso/timbre "4.8.0"]
+                 [selmer "1.10.8"]
                  [io.bmeg/protograph_2.11 "0.0.1-SNAPSHOT"]
                  [clojurewerkz/propertied "1.2.0"]
                  [org.apache.kafka/kafka_2.11 "0.10.0.1"]]
