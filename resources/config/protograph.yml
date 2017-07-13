@@ -13,7 +13,7 @@
       from: "project:{{name}}"
       to: "individual:{{_index}}"
 
-- label: ga4gh.Individual
+- label: Individual
   nodes:
     - label: Individual
       gid: "individual:{{datasetId}}:{{name}}"
@@ -36,7 +36,7 @@
       from: "cohort:{{name}}"
       to: "{{_index}}"
 
-- label: ga4gh.Biosample
+- label: Biosample
   nodes:
     - label: Biosample
       gid: "biosample:{{datasetId}}:{{name}}"
@@ -61,7 +61,7 @@
       from: "biosample:{{datasetId}}:{{name}}"
       to: "term:{{disease.term}}"
 
-- label: ga4gh.CallSet
+- label: CallSet
   edges:
     - fromLabel: Variant
       label: variantFor
@@ -69,7 +69,7 @@
       to: "{{biosampleId}}"
       lookup: "callSet:{{name}}"
 
-- label: ga4gh.Variant
+- label: Variant
   nodes:
     - label: Variant
       gid: "variant:{{referenceName}}:{{start}}:{{end}}:{{referenceBases}}:{{alternateBases}}"
@@ -88,7 +88,7 @@
       from: "variant:{{referenceName}}:{{start}}:{{end}}:{{referenceBases}}:{{alternateBases}}"
       lookup: "{{_index.callSetId}}"
 
-- label: ga4gh.VariantAnnotation
+- label: VariantAnnotation
   edges:
     - index: transcriptEffects
       fromLabel: Variant
@@ -97,7 +97,7 @@
       from: "{{variantId}}"
       to: "{{_index.featureId}}"
       properties:
-        effects: "{{_index.effects|get:term|join:,}}"
+        effects: "{{_index.effects|each:term|join:\",\"}}"
 
 - label: ResponseCurve
   edges:
@@ -190,42 +190,73 @@
       gid: "pubmed:{{pmid}}"
       merge: true
 
-- label: G2P
+- label: CNACallSet
+  edges:
+    - fromLabel: CNASegment
+      label: segmentOf
+      toLabel: Biosample
+      to: "{{biosampleId}}"
+      lookup: "cnaCallSet:{{bioSampleId}}"
+      
+- label: CNASegment
   nodes:
-    - label: GenotypePhenotypeAssociation
-      gid: "g2p:{{genes|sort|join:,}}:{{association.phenotype.description}}"
+    - label: CNASegment
+      gid: "cnaSegment:{{callSetId}}:{{referenceName}}:{{start}}:{{end}}:{{value}}"
+      merge: true
+      filter:
+        - genes
+  edges:
+    - fromLabel: CNASegment
+      label: segmentOf
+      toLabel: Biosample
+      from: "cnaSegment:{{callSetId}}:{{referenceName}}:{{start}}:{{end}}:{{value}}"
+      lookup: "{{callSetId}}"
+    - index: genes
+      fromLabel: CNASegment
+      label: segmentIn
+      toLabel: Gene
+      from: "cnaSegment:{{callSetId}}:{{referenceName}}:{{start}}:{{end}}:{{value}}"
+      to: "{{_index}}"
+
+- label: Evidence
+  nodes:
+    - label: Evidence
+      gid: "evidence:{{genes|sort|join:,}}:{{association.phenotype.description}}"
       properties:
         source: "{{source}}"
+        genotype: "{{genes|sort|join:,}}"
+        phenotype: "{{association.phenotype.description}}"
     - label: OntologyTerm
       gid: "term:{{association.phenotype.description}}"
       properties:
         term: "{{association.phenotype.description}}"
   edges:
     - index: features
-      fromLabel: GenotypePhenotypeAssociation
+      fromLabel: Evidence
       label: genotype
       toLabel: Gene
-      from: "g2p:{{genes|sort|join:,}}:{{association.phenotype.description}}"
+      from: "evidence:{{genes|sort|join:,}}:{{association.phenotype.description}}"
       to: "gene:{{_index.geneSymbol}}"
       splice:
         - _index
     - index: association.environmentalContexts
-      fromLabel: GenotypePhenotypeAssociation
+      fromLabel: Evidence
       label: environmentalContext
       toLabel: Compound
-      from: "g2p:{{genes|sort|join:,}}:{{association.phenotype.description}}"
+      from: "evidence:{{genes|sort|join:,}}:{{association.phenotype.description}}"
       to: "{{_index.id}}"
       properties:
         response: "{{association.response_type}}"
     - index: association.evidence.0.info.publications
-      fromLabel: GenotypePhenotypeAssociation
+      fromLabel: Evidence
       label: evidence
       toLabel: Pubmed
-      from: "g2p:{{genes|sort|join:,}}:{{association.phenotype.description}}"
+      from: "evidence:{{genes|sort|join:,}}:{{association.phenotype.description}}"
       to: "pubmed:{{_index|split:/|last}}"
-    - fromLabel: GenotypePhenotypeAssociation
+    - fromLabel: Evidence
       label: phenotype
       toLabel: OntologyTerm
-      from: "g2p:{{genes|sort|join:,}}:{{association.phenotype.description}}"
+      from: "evidence:{{genes|sort|join:,}}:{{association.phenotype.description}}"
       to: "term:{{association.phenotype.description}}"
+      
       

@@ -21,5 +21,5 @@
                   "https://oss.sonatype.org/content/repositories/snapshots"]
                  ["sonatype releases"
                   "https://oss.sonatype.org/content/repositories/releases"]]
-  :jvm-opts ["-Xmx12g" "-Xms12g"]
+  :jvm-opts ["-Xmx12g" "-Xms12g" "-XX:-OmitStackTraceInFastThrow"]
   :main protograph.core)

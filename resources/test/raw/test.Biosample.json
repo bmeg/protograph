@@ -1,0 +1,1 @@
+{"info": {"alias": ["1321N1"], "notes": ["Identical lines: U-118 MG, U-138 MG and 1321N1 share high SNP identity"], "sampleType": ["cellline"], "histology": ["glioma"], "source": ["ECACC"]}, "name": "1321N1_CENTRAL_NERVOUS_SYSTEM", "disease": {"term": "CENTRAL_NERVOUS_SYSTEM"}, "id": "biosample:CCLE:1321N1_CENTRAL_NERVOUS_SYSTEM", "#label": "ga4gh.Biosample", "datasetId": "CCLE"}

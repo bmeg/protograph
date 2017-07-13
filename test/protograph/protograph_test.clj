@@ -23,7 +23,13 @@
    "Green" []
    "Red" []})
 
+(def bmeg
+  (template/load-protograph "resources/config/protograph.yml"))
+
 (deftest template-test
   (testing "protograph template output"
     (let [out (template/process-message test-protograph {:_label "Yellow" :id "obor" :info {:base "c" :under "x"} :over 33333 :greens {:id "thing"}})]
       (log/info out))))
+
+(deftest bmeg-test
+  (testing ""))
