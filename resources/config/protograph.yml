@@ -72,7 +72,7 @@
 - label: Variant
   nodes:
     - label: Variant
-      gid: "variant:{{referenceName}}:{{start}}:{{end}}:{{referenceBases}}:{{alternateBases}}"
+      gid: "variant:{{referenceName}}:{{start}}:{{end}}:{{referenceBases}}:{{alternateBases|join:,}}"
       merge: true
       filter:
         - calls
@@ -85,7 +85,7 @@
       fromLabel: Variant
       label: variantFor
       toLabel: Biosample
-      from: "variant:{{referenceName}}:{{start}}:{{end}}:{{referenceBases}}:{{alternateBases}}"
+      from: "variant:{{referenceName}}:{{start}}:{{end}}:{{referenceBases}}:{{alternateBases|join:,}}"
       lookup: "{{_index.callSetId}}"
 
 - label: VariantAnnotation
@@ -97,7 +97,7 @@
       from: "{{variantId}}"
       to: "{{_index.featureId}}"
       properties:
-        effects: "{{_index.effects|each:term|join:\",\"}}"
+        effects: "{{_index.effects|each:term|join:,}}"
 
 - label: ResponseCurve
   edges:

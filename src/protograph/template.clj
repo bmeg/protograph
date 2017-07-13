@@ -83,7 +83,7 @@
         merged (if (:merge directive)
                  (merge entity out)
                  out)
-        slim (apply dissoc merged (concat splice filter))
+        slim (apply dissoc merged (map keyword (concat splice filter)))
         onto (merge (evaluate-map fields top) top)
         out (assoc onto :properties slim)]
     (if lookup
