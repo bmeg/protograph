@@ -1,0 +1,231 @@
+- label: Project
+  nodes:
+    - label: Project
+      gid: "project:{{name}}"
+      merge: true
+      filter:
+        - hasMember
+  edges:
+    - index: hasMember
+      fromLabel: Project
+      label: hasMember
+      toLabel: Individual
+      from: "project:{{name}}"
+      to: "individual:{{_index}}"
+
+- label: ga4gh.Individual
+  nodes:
+    - label: Individual
+      gid: "individual:{{datasetId}}:{{name}}"
+      merge: true
+      splice:
+        - info
+
+- label: Cohort
+  nodes:
+    - label: Cohort
+      gid: "cohort:{{name}}"
+      merge: true
+      filter:
+        - hasMember
+  edges:
+    - index: hasMember
+      fromLabel: Cohort
+      label: hasSample
+      toLabel: Biosample
+      from: "cohort:{{name}}"
+      to: "{{_index}}"
+
+- label: ga4gh.Biosample
+  nodes:
+    - label: Biosample
+      gid: "biosample:{{datasetId}}:{{name}}"
+      merge: true
+      filter:
+        - disease
+      splice:
+        - info
+    - label: OntologyTerm
+      gid: "term:{{disease.term}}"
+      splice:
+        - disease
+  edges:
+    - fromLabel: Biosample
+      label: sampleOf
+      toLabel: Individual
+      from: "biosample:{{datasetId}}:{{name}}"
+      to: "{{individualId}}"
+    - fromLabel: Biosample
+      label: hasDisease
+      toLabel: OntologyTerm
+      from: "biosample:{{datasetId}}:{{name}}"
+      to: "term:{{disease.term}}"
+
+- label: ga4gh.CallSet
+  edges:
+    - fromLabel: Variant
+      label: variantFor
+      toLabel: Biosample
+      to: "{{biosampleId}}"
+      lookup: "callSet:{{name}}"
+
+- label: ga4gh.Variant
+  nodes:
+    - label: Variant
+      gid: "variant:{{referenceName}}:{{start}}:{{end}}:{{referenceBases}}:{{alternateBases}}"
+      merge: true
+      filter:
+        - calls
+      splice:
+        - info
+      properties:
+        alternateBases: "{{alternateBases|join:,}}"
+  edges:
+    - index: calls
+      fromLabel: Variant
+      label: variantFor
+      toLabel: Biosample
+      from: "variant:{{referenceName}}:{{start}}:{{end}}:{{referenceBases}}:{{alternateBases}}"
+      lookup: "{{_index.callSetId}}"
+
+- label: ga4gh.VariantAnnotation
+  edges:
+    - index: transcriptEffects
+      fromLabel: Variant
+      label: variantIn
+      toLabel: Gene
+      from: "{{variantId}}"
+      to: "{{_index.featureId}}"
+      properties:
+        effects: "{{_index.effects|get:term|join:,}}"
+
+- label: ResponseCurve
+  edges:
+    - fromLabel: Biosample
+      label: responseTo
+      toLabel: Compound
+      from: "{{sample}}"
+      to: "{{compound}}"
+      merge: true
+
+- label: Compound
+  nodes:
+    - label: Compound
+      gid: "compound:{{name}}"
+      merge: true
+      filter:
+        - synonyms
+  edges:
+    - fromLabel: Compound
+      label: targetsGene
+      toLabel: Gene
+      from: "compound:{{name}}"
+      to: "{{target}}"
+    - index: synonyms
+      fromLabel: Compound
+      label: sameAs
+      toLabel: Compound
+      from: "{{_index}}"
+      to: "compound:{{name}}"
+
+- label: Gene
+  nodes:
+    - label: Gene
+      gid: "gene:{{symbol}}"
+      merge: true
+      filter:
+        - inFamily
+        - citedFrom
+  edges:
+    - index: citedFrom
+      fromLabel: Gene
+      label: citedFrom
+      toLabel: Pubmed
+      from: "gene:{{symbol}}"
+      to: "{{_index}}"
+    - index: inFamily
+      fromLabel: Gene
+      label: inFamily
+      toLabel: GeneFamily
+      from: "gene:{{symbol}}"
+      to: "{{_index}}"
+
+- label: GeneSynonym
+  edges:
+    - fromLabel: GeneDatabase
+      label: synonymFor
+      toLabel: Gene
+      from: "{{inDatabase}}"
+      to: "{{synonymFor}}"
+      splice:
+        - info
+
+- label: GeneDatabase
+  nodes:
+    - label: GeneDatabase
+      gid: "geneDatabase:{{name}}"
+      merge: true
+
+- label: GeneFamily
+  nodes:
+    - label: GeneFamily
+      gid: "geneFamily:{{tag}}"
+      merge: true
+
+- label: GeneExpression
+  nodes:
+    - label: GeneExpression
+      gid: "geneExpression:{{biosampleId}}"
+      merge: true
+  edges:
+    - fromLabel: GeneExpression
+      label: expressionFor
+      toLabel: Biosample
+      from: "geneExpression:{{biosampleId}}"
+      to: "{{biosampleId}}"
+
+- label: Pubmed
+  nodes:
+    - label: Pubmed
+      gid: "pubmed:{{pmid}}"
+      merge: true
+
+- label: G2P
+  nodes:
+    - label: GenotypePhenotypeAssociation
+      gid: "g2p:{{genes|sort|join:,}}:{{association.phenotype.description}}"
+      properties:
+        source: "{{source}}"
+    - label: OntologyTerm
+      gid: "term:{{association.phenotype.description}}"
+      properties:
+        term: "{{association.phenotype.description}}"
+  edges:
+    - index: features
+      fromLabel: GenotypePhenotypeAssociation
+      label: genotype
+      toLabel: Gene
+      from: "g2p:{{genes|sort|join:,}}:{{association.phenotype.description}}"
+      to: "gene:{{_index.geneSymbol}}"
+      splice:
+        - _index
+    - index: association.environmentalContexts
+      fromLabel: GenotypePhenotypeAssociation
+      label: environmentalContext
+      toLabel: Compound
+      from: "g2p:{{genes|sort|join:,}}:{{association.phenotype.description}}"
+      to: "{{_index.id}}"
+      properties:
+        response: "{{association.response_type}}"
+    - index: association.evidence.0.info.publications
+      fromLabel: GenotypePhenotypeAssociation
+      label: evidence
+      toLabel: Pubmed
+      from: "g2p:{{genes|sort|join:,}}:{{association.phenotype.description}}"
+      to: "pubmed:{{_index|split:/|last}}"
+    - fromLabel: GenotypePhenotypeAssociation
+      label: phenotype
+      toLabel: OntologyTerm
+      from: "g2p:{{genes|sort|join:,}}:{{association.phenotype.description}}"
+      to: "term:{{association.phenotype.description}}"
+      
