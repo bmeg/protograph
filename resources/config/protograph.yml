@@ -60,6 +60,9 @@
       toLabel: OntologyTerm
       from: "biosample:{{datasetId}}:{{name}}"
       to: "term:{{disease.term}}"
+  embedded:
+    - label: OntologyTerm
+      path: disease
 
 - label: CallSet
   edges:

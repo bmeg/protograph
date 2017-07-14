@@ -71,7 +71,6 @@
 
 (defn merge-edges
   [a b]
-  (log/info a b)
   (let [properties (merge (:properties a) (:properties b))
         top (merge a b)
         onto (merge top (evaluate-map edge-fields top))]
@@ -138,7 +137,7 @@
    vertex-fields))
 
 (defn process-directive
-  [{:keys [nodes edges state] :as protonode} message]
+  [{:keys [nodes edges state embedded protograph]} message]
   {:nodes (mapcat #(process-vertex (assoc % :state state) message) nodes)
    :edges (mapcat #(process-edge (assoc % :state state) message) edges)})
 
