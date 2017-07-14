@@ -1,6 +1,7 @@
 (ns protograph.template
   (:require
    [clojure.string :as string]
+   [clojure.pprint :as pprint]
    [clojure.java.io :as io]
    [taoensso.timbre :as log]
    [selmer.filters :as filters]
@@ -55,27 +56,38 @@
 (def partial-terminals (atom {}))
 
 (defn lookup-partials
-  [edge]
+  [state edge]
   (cond
-    (:to edge) partial-sources
-    (:from edge) partial-terminals
-    :else partial-nodes))
+    (:to edge) (:sources state)
+    (:from edge) (:terminals state)
+    :else (:nodes state)))
 
 (defn store-partials
-  [edge]
+  [state edge]
   (cond
-    (:to edge) partial-terminals
-    (:from edge) partial-sources
-    :else partial-nodes))
+    (:to edge) (:terminals state)
+    (:from edge) (:sources state)
+    :else (:nodes state)))
 
 (defn merge-edges
   [a b]
+  (log/info a b)
   (let [properties (merge (:properties a) (:properties b))
-        out (merge a b)]
-    (assoc out :properties properties)))
+        top (merge a b)
+        onto (merge top (evaluate-map edge-fields top))]
+    (assoc onto :properties properties)))
 
 (defn process-entity
-  [top-level fields {:keys [properties splice filter lookup] :as directive} entity]
+  [top-level
+   fields
+   {:keys
+    [state
+     properties
+     splice
+     filter
+     lookup]
+    :as directive}
+   entity]
   (let [core (select-keys directive top-level)
         top (evaluate-map core entity)
         properties (evaluate-map properties entity)
@@ -84,18 +96,22 @@
                  (merge entity out)
                  out)
         slim (apply dissoc merged (map keyword (concat splice filter)))
-        onto (merge (evaluate-map fields top) top)
-        out (assoc onto :properties slim)]
+        onto (assoc top :properties slim)]
     (if lookup
       (let [look (evaluate-template lookup entity)
-            partials (lookup-partials out)
-            store (store-partials out)]
+            partials (lookup-partials state onto)
+            store (store-partials state onto)]
         (if-let [found (get @partials look)]
-          (mapv #(merge-edges % out) found)
           (do
-            (swap! store update look conj out)
+            (log/info (:_label entity) look)
+            (pprint/pprint found)
+            (mapv #(merge-edges % onto) found))
+          (do
+            (log/info (:_label entity) look)
+            (pprint/pprint onto)
+            (swap! store update look conj onto)
             [])))
-      [out])))
+      [(merge (evaluate-map fields onto) onto)])))
 
 (defn process-index
   [top-level fields {:keys [index] :as directive} entity]
@@ -103,7 +119,7 @@
     (process-entity top-level fields directive entity)
     (let [path (parse-index index)
           series (get-in entity path)]
-      (mapv
+      (mapcat
        (comp
         (partial process-entity top-level fields directive)
         (partial assoc entity :_index))
@@ -122,15 +138,15 @@
    vertex-fields))
 
 (defn process-directive
-  [{:keys [nodes edges] :as protonode} message]
-  {:nodes (mapcat #(process-vertex % message) nodes)
-   :edges (mapcat #(process-edge % message) edges)})
+  [{:keys [nodes edges state] :as protonode} message]
+  {:nodes (mapcat #(process-vertex (assoc % :state state) message) nodes)
+   :edges (mapcat #(process-edge (assoc % :state state) message) edges)})
 
 (defn process-message
-  [protograph message]
+  [{:keys [state] :as protograph} message]
   (let [label (get message :_label)
         directive (get protograph label)]
-    (process-directive directive message)))
+    (process-directive (assoc directive :state state) message)))
 
 (filters/add-filter! :each (fn [s k] (mapv #(get % (keyword k)) s)))
 (filters/add-filter! :split (fn [s d] (string/split s (re-pattern d))))
@@ -143,22 +159,31 @@
        (assoc protograph (:label spec) (select-keys spec [:nodes :edges])))
      {} raw)))
 
+(defn partial-state
+  []
+  {:nodes (atom {})
+   :sources (atom {})
+   :terminals (atom {})})
+
 (defn transform-dir
   [protograph path]
-  (reduce
-   (fn [so file]
-     (let [label (kafka/path->label (.getName file))
-           lines (line-seq (io/reader file))]
-       (reduce
-        (fn [so line]
-          (try
-            (let [data (json/parse-string line true)
-                  out (process-message protograph (assoc data :_label label))]
-              (merge-with concat so out))
-            (catch Exception e
-              (.printStackTrace e)
-              (log/info e)
-              (log/info line)
-              so)))
-        so lines)))
-   {} (kafka/dir->files path)))
+  (let [state (partial-state)]
+    (reduce
+     (fn [so file]
+       (let [label (kafka/path->label (.getName file))
+             lines (line-seq (io/reader file))]
+         (reduce
+          (fn [so line]
+            (try
+              (let [data (json/parse-string line true)
+                    out (process-message
+                         (assoc protograph :state state)
+                         (assoc data :_label label))]
+                (merge-with concat so out))
+              (catch Exception e
+                (.printStackTrace e)
+                (log/info e)
+                (log/info line)
+                so)))
+          so lines)))
+     {} (kafka/dir->files path))))

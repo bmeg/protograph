@@ -152,10 +152,11 @@
 
 - label: GeneSynonym
   edges:
-    - fromLabel: GeneDatabase
+    - index: inDatabase
+      fromLabel: GeneDatabase
       label: synonymFor
       toLabel: Gene
-      from: "{{inDatabase}}"
+      from: "{{_index}}"
       to: "{{synonymFor}}"
       splice:
         - info
@@ -195,7 +196,7 @@
     - fromLabel: CNASegment
       label: segmentOf
       toLabel: Biosample
-      to: "{{biosampleId}}"
+      to: "{{bioSampleId}}"
       lookup: "cnaCallSet:{{bioSampleId}}"
       
 - label: CNASegment
