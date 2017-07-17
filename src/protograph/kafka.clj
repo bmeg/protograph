@@ -2,6 +2,7 @@
   (:require
    [clojure.string :as string]
    [clojure.java.io :as io]
+   [clojure.tools.cli :as cli]
    [taoensso.timbre :as log]
    [clojurewerkz.propertied.properties :as props])
   (:import
@@ -58,12 +59,17 @@
        (.subscribe devour topics))
      devour)))
 
+(defn consumer-empty?
+  [in]
+  (empty? (.poll in 1000)))
+
 (defn consume
   [in handle-message]
-  (while true
-    (let [records (.poll in 1000)]
+  (loop [records (.poll in 1000)]
+    (when-not (empty? records)
       (doseq [record records]
-        (handle-message record)))))
+        (handle-message record))
+      (recur (.poll in 1000)))))
 
 (defn subscribe
   [in topics]
@@ -92,10 +98,6 @@
         post (props/map->properties (merge pre config))]
     (println "topic config" topic post)
     (AdminUtils/changeTopicConfig zookeeper topic post)))
-
-(defn consumer-empty?
-  [in]
-  (empty? (.poll in 1000)))
 
 (defn topic-empty?
   [config topic]
@@ -158,29 +160,49 @@
         spout (producer host)]
     (dir->streams spout path)))
 
-(defn kafka-host
-  []
-  (or
-   (System/getenv "KAFKA_HOST")
-   "localhost"))
+;; (defn kafka-host
+;;   []
+;;   (or
+;;    (System/getenv "KAFKA_HOST")
+;;    "localhost"))
 
-(def default-config
-  {:host (str (kafka-host) ":9092")
-   :consumer
-   {:group-id (uuid)}})
+;; (def default-config
+;;   {:host (str (kafka-host) ":9092")
+;;    :consumer
+;;    {:group-id (uuid)}})
+
+(def parse-args
+  [["-k" "--kafka KAFKA" "host for kafka server"
+    :default "localhost:9092"]
+   ["-t" "--topic TOPIC" "kafka topic"]
+   ["-o" "--output OUTPUT" "output file or dir"]
+   ["-i" "--input INPUT" "input file or dir"]])
 
 (defn -main
   [& args]
-  (condp = (first args)
-    "spout"
-    (doseq [path (rest args)]
-      (log/info "spouting" path)
-      (spout-dir default-config path))
+  (let [switch (first args)
+        env (:options (cli/parse-opts (rest args) parse-args))
+        kafka (:kafka env)
+        parts (string/split kafka #":")
+        host (string/join ":" (butlast parts))
+        port (last parts)
+        topics (if (:topic env) (string/split (:topic env) #",") [])]
+    (condp = switch
+      "spout"
+      (doseq [path (string/split (:input env) #",")]
+        (log/info "spouting" path)
+        (spout-dir {:host kafka} path))
 
-    "purge"
-    (let [zk (zookeeper-utils (str (kafka-host) ":2181"))]
-      (doseq [topic (rest args)]
-        (log/info "purging" topic)
-        (purge-topic! zk {:host (str (kafka-host) ":9092")} topic))
-      (log/info "closing zookeeper connection")
-      (.close zk))))
+      "dump"
+      (let [in (consumer {:host kafka :topics topics})
+            out (io/writer (str (:output env) ".json"))]
+        (consume in (fn [message] (.write out message)))
+        (.close out))
+
+      "purge"
+      (let [zk (zookeeper-utils (str host ":2181"))]
+        (doseq [topic topics]
+          (log/info "purging" topic)
+          (purge-topic! zk {:host kafka} topic))
+        (log/info "closing zookeeper connection")
+        (.close zk)))))
