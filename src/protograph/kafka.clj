@@ -66,7 +66,7 @@
 (defn consume
   [in handle-message]
   (loop [records (.poll in 1000)]
-    (when-not (empty? records)
+    (when-not (.isEmpty records)
       (doseq [record records]
         (handle-message record))
       (recur (.poll in 1000)))))
@@ -196,7 +196,8 @@
       "dump"
       (let [in (consumer {:host kafka :topics topics})
             out (io/writer (str (:output env) ".json"))]
-        (consume in (fn [message] (.write out message)))
+        (log/info "reading topics" topics "from" kafka)
+        (consume in (fn [message] (.write out (str (.value message) "\n"))))
         (.close out))
 
       "purge"
