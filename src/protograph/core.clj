@@ -111,11 +111,11 @@
           (process protograph emit label data)))))
   (.close emit))
 
-(def default-config
-  {:protograph
-   {:path "../gaia-bmeg/bmeg.protograph.yml"
-    :prefix "protograph.bmeg"}
-   :kafka kafka/default-config})
+;; (def default-config
+;;   {:protograph
+;;    {:path "../gaia-bmeg/bmeg.protograph.yml"
+;;     :prefix "protograph.bmeg"}
+;;    :kafka kafka/default-config})
 
 (def bmeg-topics
   {:ccle ["ccle.ga4gh.VariantAnnotation" "ccle.ga4gh.CallSet" "ccle.ResponseCurve" "ccle.Biosample" "ccle.GeneExpression" "ccle.ga4gh.Variant"]
@@ -146,7 +146,8 @@
 (defn -main
   [& args]
   (let [env (:options (cli/parse-opts args parse-args))
-        config (assoc-env default-config env)
+        config (assoc-env {} env)
+        ;; config (assoc-env default-config env)
         protograph (load-protograph
                     (or
                      (:protograph env)
