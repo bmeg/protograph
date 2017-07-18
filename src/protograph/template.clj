@@ -3,6 +3,7 @@
    [clojure.string :as string]
    [clojure.pprint :as pprint]
    [clojure.java.io :as io]
+   [clojure.tools.cli :as cli]
    [taoensso.timbre :as log]
    [selmer.filters :as filters]
    [selmer.parser :as template]
@@ -186,3 +187,29 @@
                 so)))
           so lines)))
      {} (kafka/dir->files path))))
+
+(defn write-output
+  [prefix type entities]
+  (let [writer (io/writer (str prefix "." type ".json"))]
+    (doseq [entity entities]
+      (.write writer (str (json/generate-string entity) "\n")))
+    (.close writer)))
+
+(def parse-args
+  [["-p" "--protograph PROTOGRAPH" "path to protograph.yml"
+    :default "protograph.yml"]
+   ["-k" "--kafka KAFKA" "host for kafka server"
+    :default "localhost:9092"]
+   ["-i" "--input INPUT" "input file or directory"]
+   ["-o" "--output OUTPUT" "prefix for output file"]
+   ["-t" "--topic TOPIC" "input topic to read from"]
+   ["-x" "--prefix PREFIX" "output topic prefix"]])
+
+(defn -main
+  [& args]
+  (let [env (:options (cli/parse-opts args parse-args))
+        protograph (load-protograph (:protograph env))
+        {:keys [nodes edges]} (transform-dir protograph (:input env))
+        output (:output env)]
+    (write-output output "Vertex" nodes)
+    (write-output output "Edge" edges)))
