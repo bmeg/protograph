@@ -103,12 +103,12 @@
             store (store-partials state onto)]
         (if-let [found (get @partials look)]
           (do
-            (log/info (:_label entity) look)
-            (pprint/pprint found)
+            ;; (log/info (:_label entity) look)
+            ;; (pprint/pprint found)
             (mapv #(merge-edges % onto) found))
           (do
-            (log/info (:_label entity) look)
-            (pprint/pprint onto)
+            ;; (log/info (:_label entity) look)
+            ;; (pprint/pprint onto)
             (swap! store update look conj onto)
             [])))
       [(merge (evaluate-map fields onto) onto)])))
@@ -167,30 +167,34 @@
 
 (defn transform-dir
   [protograph path]
-  (let [state (partial-state)]
-    (reduce
-     (fn [so file]
-       (let [label (kafka/path->label (.getName file))
-             lines (line-seq (io/reader file))]
-         (reduce
-          (fn [so line]
-            (try
-              (let [data (json/parse-string line true)
-                    out (process-message
-                         (assoc protograph :state state)
-                         (assoc data :_label label))]
-                (merge-with concat so out))
-              (catch Exception e
-                (.printStackTrace e)
-                (log/info e)
-                (log/info line)
-                so)))
-          so lines)))
-     {} (kafka/dir->files path))))
+  (let [state (partial-state)
+        out
+        (mapv
+         (fn [file]
+           (log/info file)
+           (let [label (kafka/path->label (.getName file))
+                 lines (line-seq (io/reader file))]
+             (mapv
+              (fn [line]
+                (print ".")
+                (try
+                  (let [data (json/parse-string line true)
+                        out (process-message
+                             (assoc protograph :state state)
+                             (assoc data :_label label))]
+                    out)
+                  (catch Exception e
+                    (.printStackTrace e)
+                    (log/info e)
+                    (log/info line)
+                    {:nodes [] :edges []})))
+              lines)))
+         (kafka/dir->files path))]
+    (apply merge-with into (flatten out))))
 
 (defn write-output
-  [prefix type entities]
-  (let [writer (io/writer (str prefix "." type ".json"))]
+  [prefix entities]
+  (let [writer (io/writer (str prefix ".json"))]
     (doseq [entity entities]
       (.write writer (str (json/generate-string entity) "\n")))
     (.close writer)))
@@ -210,6 +214,7 @@
   (let [env (:options (cli/parse-opts args parse-args))
         protograph (load-protograph (:protograph env))
         {:keys [nodes edges]} (transform-dir protograph (:input env))
+        _ (log/info "nodes" (count nodes) "edges" (count edges))
         output (:output env)]
-    (write-output output "Vertex" nodes)
-    (write-output output "Edge" edges)))
+    (write-output (str output ".Vertex") nodes)
+    (write-output (str output ".Edge") edges)))
