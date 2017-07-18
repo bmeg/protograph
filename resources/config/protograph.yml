@@ -160,7 +160,7 @@
       label: synonymFor
       toLabel: Gene
       from: "{{_index}}"
-      to: "{{synonymFor}}"
+      to: "{{synonymFor|first}}"
       splice:
         - info
 
