@@ -149,6 +149,7 @@
     (process-directive (assoc directive :state state) message)))
 
 (filters/add-filter! :each (fn [s k] (mapv #(get % (keyword k)) s)))
+(filters/add-filter! :flatten flatten)
 (filters/add-filter! :split (fn [s d] (string/split s (re-pattern d))))
 
 (defn load-protograph

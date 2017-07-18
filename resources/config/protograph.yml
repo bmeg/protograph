@@ -11,7 +11,7 @@
       label: hasMember
       toLabel: Individual
       from: "project:{{name}}"
-      to: "individual:{{_index}}"
+      to: "{{_index}}"
 
 - label: Individual
   nodes:
@@ -256,7 +256,7 @@
       label: evidence
       toLabel: Pubmed
       from: "evidence:{{genes|sort|join:,}}:{{association.phenotype.description}}"
-      to: "pubmed:{{_index|split:/|last}}"
+      to: "pubmed:{{_index|flatten|split:/|last}}"
     - fromLabel: Evidence
       label: phenotype
       toLabel: OntologyTerm
