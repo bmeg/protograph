@@ -235,7 +235,7 @@
       properties:
         term: "{{association.phenotype.description}}"
   edges:
-    - index: "{{features}}"
+    - index: features
       fromLabel: Evidence
       label: genotype
       toLabel: Gene
@@ -243,7 +243,7 @@
       to: "gene:{{_index.geneSymbol}}"
       splice:
         - _index
-    - index: "{{association.environmentalContexts}}"
+    - index: association.environmentalContexts
       fromLabel: Evidence
       label: environmentalContext
       toLabel: Compound
@@ -251,7 +251,7 @@
       to: "{{_index.id}}"
       properties:
         response: "{{association.response_type}}"
-    - index: "{{association.evidence.0.info.publications|flatten}}"
+    - index: association.evidence.0.info.publications|flatten
       fromLabel: Evidence
       label: evidence
       toLabel: Pubmed
