@@ -179,7 +179,7 @@ The overall structure of a `protograph.yml` is a list of transforms indexed by l
     - label: Biosample
       ....
 
-Everything living under one of these items pertains to input messages with the given label. You can provide this label in two ways. One of which is to put the label under the `_label` key in your input messages (making them self-describing). The other is to use an input stream with a certain naming convention (the label is the last element in the name of the stream). In the latter case all messages in the stream are assumed to have the same label.
+Everything living under one of these labels pertains to input messages with the given label. You can provide this label in two ways. One of which is to put the label under the `_label` key in your input messages (making them self-describing). The other is to use an input stream with a certain naming convention (the label is the last element in the name of the stream). In the latter case all messages in the stream are assumed to have the same label.
 
 When messages are processed, the first thing that happens is the label of the incoming message is matched to one of the protograph transforms. Once a label is chosen, each transform under that label is run on the given message.
 
