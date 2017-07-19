@@ -29,11 +29,11 @@ A vertex contains three keys:
 
 An edge has two terminals, a `from` and `to`, each with their own labels:
 
-* **fromLabel**
-* **toLabel**
+* **fromLabel** (the label of the _from_ vertex for the edge)
+* **toLabel** (the label of the _to_ vertex for the edge)
 * **label** (the label of the edge itself).
-* **from**
-* **to**
+* **from** (the gid of the _from_ vertex for the edge)
+* **to** (the gid of the _to_ vertex for the edge)
 * **properties** (once again, the rest of the data is here).
 
 ## A basic example
