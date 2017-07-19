@@ -256,7 +256,7 @@
       label: evidence
       toLabel: Pubmed
       from: "evidence:{{genes|sort|join:,}}:{{association.phenotype.description}}"
-      to: "pubmed:{{_index|flatten|split:/|last}}"
+      to: "pubmed:{{_index|split:/|last}}"
     - fromLabel: Evidence
       label: phenotype
       toLabel: OntologyTerm
