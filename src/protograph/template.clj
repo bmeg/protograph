@@ -119,7 +119,8 @@
     (process-entity top-level fields directive entity)
     (let [;; path (parse-index index)
           ;; series (get-in entity path)
-          series (evaluate-template index context)]
+          series (evaluate-template index entity)]
+      (log/info index series)
       (mapcat
        (comp
         (partial process-entity top-level fields directive)
