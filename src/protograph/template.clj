@@ -52,7 +52,7 @@
 (def vertex-fields
   {})
 
-(def partial-nodes (atom {}))
+(def partial-vertexes (atom {}))
 (def partial-sources (atom {}))
 (def partial-terminals (atom {}))
 
@@ -61,14 +61,14 @@
   (cond
     (:to edge) (:sources state)
     (:from edge) (:terminals state)
-    :else (:nodes state)))
+    :else (:vertexes state)))
 
 (defn store-partials
   [state edge]
   (cond
     (:to edge) (:terminals state)
     (:from edge) (:sources state)
-    :else (:nodes state)))
+    :else (:vertexes state)))
 
 (defn merge-edges
   [a b]
@@ -138,8 +138,8 @@
    vertex-fields))
 
 (defn process-directive
-  [{:keys [nodes edges state embedded protograph]} message]
-  {:nodes (mapcat #(process-vertex (assoc % :state state) message) nodes)
+  [{:keys [vertexes edges state embedded protograph]} message]
+  {:vertexes (mapcat #(process-vertex (assoc % :state state) message) vertexes)
    :edges (mapcat #(process-edge (assoc % :state state) message) edges)})
 
 (defn process-message
@@ -157,12 +157,12 @@
   (let [raw (yaml/parse-string (slurp path))]
     (reduce
      (fn [protograph spec]
-       (assoc protograph (:label spec) (select-keys spec [:nodes :edges])))
+       (assoc protograph (:label spec) (select-keys spec [:vertexes :edges])))
      {} raw)))
 
 (defn partial-state
   []
-  {:nodes (atom {})
+  {:vertexes (atom {})
    :sources (atom {})
    :terminals (atom {})})
 
@@ -188,7 +188,7 @@
                     (.printStackTrace e)
                     (log/info e)
                     (log/info line)
-                    {:nodes [] :edges []})))
+                    {:vertexes [] :edges []})))
               lines)))
          (kafka/dir->files path))]
     (apply merge-with into (flatten out))))
@@ -214,8 +214,8 @@
   [& args]
   (let [env (:options (cli/parse-opts args parse-args))
         protograph (load-protograph (:protograph env))
-        {:keys [nodes edges]} (transform-dir protograph (:input env))
-        _ (log/info "nodes" (count nodes) "edges" (count edges))
+        {:keys [vertexes edges]} (transform-dir protograph (:input env))
+        _ (log/info "vertexes" (count vertexes) "edges" (count edges))
         output (:output env)]
-    (write-output (str output ".Vertex") nodes)
+    (write-output (str output ".Vertex") vertexes)
     (write-output (str output ".Edge") edges)))

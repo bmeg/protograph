@@ -1,5 +1,5 @@
 - label: Project
-  nodes:
+  vertexes:
     - label: Project
       gid: "project:{{name}}"
       merge: true
@@ -14,7 +14,7 @@
       to: "{{_index}}"
 
 - label: Individual
-  nodes:
+  vertexes:
     - label: Individual
       gid: "individual:{{datasetId}}:{{name}}"
       merge: true
@@ -22,7 +22,7 @@
         - info
 
 - label: Cohort
-  nodes:
+  vertexes:
     - label: Cohort
       gid: "cohort:{{name}}"
       merge: true
@@ -37,7 +37,7 @@
       to: "{{_index}}"
 
 - label: Biosample
-  nodes:
+  vertexes:
     - label: Biosample
       gid: "biosample:{{datasetId}}:{{name}}"
       merge: true
@@ -73,7 +73,7 @@
       lookup: "callSet:{{name}}"
 
 - label: Variant
-  nodes:
+  vertexes:
     - label: Variant
       gid: "variant:{{referenceName}}:{{start}}:{{end}}:{{referenceBases}}:{{alternateBases|join:,}}"
       merge: true
@@ -112,7 +112,7 @@
       merge: true
 
 - label: Compound
-  nodes:
+  vertexes:
     - label: Compound
       gid: "compound:{{name}}"
       merge: true
@@ -132,7 +132,7 @@
       to: "compound:{{name}}"
 
 - label: Gene
-  nodes:
+  vertexes:
     - label: Gene
       gid: "gene:{{symbol}}"
       merge: true
@@ -165,19 +165,19 @@
         - info
 
 - label: GeneDatabase
-  nodes:
+  vertexes:
     - label: GeneDatabase
       gid: "geneDatabase:{{name}}"
       merge: true
 
 - label: GeneFamily
-  nodes:
+  vertexes:
     - label: GeneFamily
       gid: "geneFamily:{{tag}}"
       merge: true
 
 - label: GeneExpression
-  nodes:
+  vertexes:
     - label: GeneExpression
       gid: "geneExpression:{{biosampleId}}"
       merge: true
@@ -189,7 +189,7 @@
       to: "{{biosampleId}}"
 
 - label: Pubmed
-  nodes:
+  vertexes:
     - label: Pubmed
       gid: "pubmed:{{pmid}}"
       merge: true
@@ -203,7 +203,7 @@
       lookup: "cnaCallSet:{{bioSampleId}}"
       
 - label: CNASegment
-  nodes:
+  vertexes:
     - label: CNASegment
       gid: "cnaSegment:{{callSetId}}:{{referenceName}}:{{start}}:{{end}}:{{value}}"
       merge: true
@@ -223,7 +223,7 @@
       to: "{{_index}}"
 
 - label: Evidence
-  nodes:
+  vertexes:
     - label: Evidence
       gid: "evidence:{{genes|sort|join:,}}:{{association.phenotype.description}}"
       properties:
