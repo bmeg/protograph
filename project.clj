@@ -9,7 +9,7 @@
                  [io.forward/yaml "1.0.6"]
                  [com.taoensso/timbre "4.8.0"]
                  [selmer "1.10.8"]
-                 [io.bmeg/protograph_2.11 "0.0.1-SNAPSHOT"]
+                 ;; [io.bmeg/protograph_2.11 "0.0.1-SNAPSHOT"]
                  [clojurewerkz/propertied "1.2.0"]
                  [org.apache.kafka/kafka_2.11 "0.10.0.1"]]
 ;;                  [org.apache.kafka/kafka_2.10 "0.10.0.1" :scope "test"
@@ -22,4 +22,4 @@
                  ["sonatype releases"
                   "https://oss.sonatype.org/content/repositories/releases"]]
   :jvm-opts ["-Xmx12g" "-Xms12g" "-XX:-OmitStackTraceInFastThrow"]
-  :main protograph.core)
+  :main protograph.template)

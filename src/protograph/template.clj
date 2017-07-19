@@ -10,7 +10,8 @@
    [selmer.filter-parser :as parser]
    [cheshire.core :as json]
    [yaml.core :as yaml]
-   [protograph.kafka :as kafka]))
+   [protograph.kafka :as kafka])
+  (:gen-class))
 
 (def defaults
   {})

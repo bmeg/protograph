@@ -112,6 +112,7 @@ To specify the transformations, you declare what vertexes and edges are generate
     label: Variant
     vertexes:
       - label: Variant
+        gid: "variant:{{referenceName}}:{{start}}:{{end}}:{{referenceBases}}:{{alternateBases}}"
         merge: true
         filter:
           - sample
@@ -205,17 +206,94 @@ An edge has six keys: two terminals, a `from` and `to`, each with their own labe
 
 As you can see, both have a `label` and `properties`, but the vertex also defines a unique `gid` while the edge specifies the vertexes it is connected to through `from` and `to`, and the labels of those vertexes with `fromLabel` and `toLabel`.
 
+Each of these fields is constructed from a template as described in the section above `protograph fields are constructed using selmer templates`. Therefore, a vertex transform may look like this:
+
+    - label: Variant
+      vertexes:
+        - label: Mutation
+          gid: "variant:{{referenceName}}:{{start}}:{{end}}:{{referenceBases}}:{{alternateBases}}"
+          properties:
+            alternateBases: "{{alternateBases|join:,}}"
+
+### merge/filter
+
+Sometimes you want all (or most) of the fields present in the input message to appear in the output message, and you don't want to make an entry under `properties` for each one (or maybe you don't even know what all of them are beforehand). This is where `merge` comes in:
+
+    - label: Variant
+      gid: "variant:{{referenceName}}:{{start}}:{{end}}:{{referenceBases}}:{{alternateBases}}"
+      merge: true
+
+Saying `merge: true` will merge all fields from the input message into the output message. If you want all of them _except_ for a handful, you can add a `filter` entry under the `merge`:
+
+    - label: Variant
+      gid: "variant:{{referenceName}}:{{start}}:{{end}}:{{referenceBases}}:{{alternateBases}}"
+      merge: true
+      filter:
+        - sample
+
+The `filter` is a list of fields to _exclude_ from the merge.
+
+### splice
+
+`splice` is similar to merge, but this time you are splicing in some nested object into the top level. During a `splice` there is no filter step, you just get the whole map at the top level. Like the `filter` directive, `splice` takes a list of paths:
+
+    - label: Variant
+      gid: "variant:{{referenceName}}:{{start}}:{{end}}:{{referenceBases}}:{{alternateBases}}"
+      splice:
+        - info
+        - center.source
+
+### index
+
+Many times you have an array of things in the incoming message that entail an output of many edges, for instance. Take this example:
+
+    {"name": "azacitidine",
+     "smiles": "Nc1ncn([C@@H]2O[C@H](CO)[C@@H](O)[C@H]2O)c(=O)n1",
+     "targets": ["DNMT1", "BRAF"],
+     ....}
+
+We want to turn everything in the `targets` array into an edge. In cases like these, we can use `_index`!
+
+    vertexes:
+      - label: Compound
+        gid: "compound:{{name}}"
+        merge: true
+        filter:
+          - targets
+    edges:
+      - index: targets
+        fromLabel: Compound
+        toLabel: Gene
+        label: targetsGene
+        from: "compound:{{name}}"
+        to: "gene:{{_index}}"
+
+Notice for the edges, we declare the `index` to be the `targets` field, then later in the `to` field we can reference each item in the `targets` array using `_index`.
+
+The `index` field can also use filters, so say you don't have an array but a comma-separated string:
+    
+    {"name": "azacitidine",
+     "smiles": "Nc1ncn([C@@H]2O[C@H](CO)[C@@H](O)[C@H]2O)c(=O)n1",
+     "targets": "DNMT1,BRAF",
+     ....}
+
+Insidious! Yet, we can handle this as well using the `split` filter:
+
+    - index: targets|split:,
+
+This makes the edges identical to the previous ones.
+
 # running protograph
 
 You can run Protograph either by transforming a directory containing input messages into Vertex and Edge output files, or by consuming a Kafka topic and emitting to another pair of Kafka topics (one for Vertex and one for Edge).
 
-Either way, start by first installing [Leiningen](https://leiningen.org/), then clone this repo and run either of the below options:
+Either way, start by downloading the [latest release](https://github.com/bmeg/protograph/releases).
 
 ## protograph transform with files
 
-To run Protograph on a directory of input files, use the `--input` and `--output` options:
+To run Protograph on a directory of input files, use the `--input` and `--output` options, along with the path to your `protograph.yml` under `--protograph`:
 
-    lein run --protograph path/to/protograph.yml --input /path/to/input/messages.Label.json --output /path/to/output/with/file.prefix
+    java -jar protograph.jar --protograph path/to/protograph.yml --input /path/to/input/messages.Label.json --output /path/to/output/with/file.prefix
 
 Input files must follow a naming convention where the key into the Protograph description is the penultimate element in the file path, so something like
 
@@ -234,13 +312,13 @@ depending on what you passed to `--output`.
 
 To run Protograph in Kafka mode you must have access to a Kafka node with some topics to import. 
 
-    lein run --protograph path/to/protograph.yml --topic "topic1 topic2 topic3"
+    java -jar protograph.jar --protograph path/to/protograph.yml --topic "topic1 topic2 topic3"
 
 This will by default output to the Kafka topics `protograph.Vertex` and `protograph.Edge`. To change the prefix for these topics pass in something under the `--prefix` key:
 
     # this will output to the topics inspired.project.Vertex and inspired.project.Edge
-    lein run --protograph path/to/protograph.yml --topic "topic1 topic2 topic3" --prefix inspired.project
+    java -jar protograph.jar --protograph path/to/protograph.yml --topic "topic1 topic2 topic3" --prefix inspired.project
 
 If you need to change the kafka host, pass it in under `--kafka`:
 
-    lein run --protograph path/to/protograph.yml --kafka 10.96.11.82:9092 --topic "topic1 topic2 topic3"
+    java -jar protograph.jar --protograph path/to/protograph.yml --kafka 10.96.11.82:9092 --topic "topic1 topic2 topic3"
