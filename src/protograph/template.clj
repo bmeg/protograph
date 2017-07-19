@@ -7,6 +7,7 @@
    [taoensso.timbre :as log]
    [selmer.filters :as filters]
    [selmer.parser :as template]
+   [selmer.filter-parser :as parser]
    [cheshire.core :as json]
    [yaml.core :as yaml]
    [protograph.kafka :as kafka]))
@@ -113,12 +114,18 @@
             [])))
       [(merge (evaluate-map fields onto) onto)])))
 
+(defn evaluate-body
+  [template context]
+  ((parser/compile-filter-body template false) context))
+
 (defn process-index
   [top-level fields {:keys [index] :as directive} entity]
   (if (empty? index)
     (process-entity top-level fields directive entity)
-    (let [path (parse-index index)
-          series (get-in entity path)]
+    (let [;; path (parse-index index)
+          ;; series (get-in entity path)
+          series (evaluate-body index entity)]
+      (log/info index series)
       (mapcat
        (comp
         (partial process-entity top-level fields directive)
