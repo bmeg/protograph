@@ -105,7 +105,7 @@ Gids are used to link messages together. Typically a message will contain a gid 
 
 ## protograph transformations describe the construction of vertexes and edges
 
-In general, you specify a transformation for a given message type by describing what the output is going to look like in terms of the input map. This way the input messages can be of any shape or schema.
+In general, you specify a transformation for a given message type by describing what the output is going to look like in terms of the input map. This way you can transform messages of any shape or schema into graph elements.
 
 To specify the transformations, you declare what vertexes and edges are generated from a given message label. Each message type can generate any number of vertexes and edges:
 
