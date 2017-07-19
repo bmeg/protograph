@@ -159,9 +159,51 @@ There are even simple filters you can trigger using the `|` operator:
 
 There are a variety of filters available. For more information check out the [Selmer documentation](https://github.com/yogthos/Selmer#filters).
 
+## protograph has a protobuffer schema
+
+There is a protobuffer schema for Protograph defined here: [Protograph schema](https://github.com/bmeg/protograph/blob/master/schema/protograph.proto).
+
 # how to write protograph
 
+The overall structure of a `protograph.yml` is a list of transforms indexed by label:
 
+    - label: Variant
+      ....
+
+    - label: Gene
+      ....
+
+    - label: Biosample
+      ....
+
+Everything living under one of these items pertains to input messages with the given label. You can provide this label in two ways. One of which is to put the label under the `_label` key in your input messages (making them self-describing). The other is to use an input stream with a certain naming convention (the label is the last element in the name of the stream). In the latter case all messages in the stream are assumed to have the same label.
+
+When messages are processed, the first thing that happens is the label of the incoming message is matched to one of the protograph transforms. Once a label is chosen, each transform under that label is run on the given message.
+
+Transforms are of two types: transforms that produce vertexes and transforms that produce edges. These live under the `vertexes` and `edges` keys respectively.
+
+    - label: Variant
+      vertexes:
+        ....
+      edges:
+        ....
+
+There are many commonalities between creating vertexes and edges, but minor differences as well. As said in the beginning, a vertex has three keys:
+
+* **label** (a string declaring the type of vertex)
+* **gid** (a globally unique identifier constructed from the data contained in the message
+* **properties** (containing all of the other data)
+
+An edge has six keys: two terminals, a `from` and `to`, each with their own labels:
+
+* **fromLabel** (the label of the _from_ vertex for the edge)
+* **toLabel** (the label of the _to_ vertex for the edge)
+* **label** (the label of the edge itself).
+* **from** (the gid of the _from_ vertex for the edge)
+* **to** (the gid of the _to_ vertex for the edge)
+* **properties** (once again, the rest of the data is here).
+
+As you can see, both have a `label` and `properties`, but the vertex also defines a unique `gid` while the edge specifies the vertexes it is connected to through `from` and `to`, and the labels of those vertexes with `fromLabel` and `toLabel`.
 
 # running protograph
 
