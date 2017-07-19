@@ -225,7 +225,7 @@ Sometimes you want all (or most) of the fields present in the input message to a
       gid: "variant:{{referenceName}}:{{start}}:{{end}}:{{referenceBases}}:{{alternateBases}}"
       merge: true
 
-Saying `merge: true` will merge all fields from the input message into the output message. If you want all of them _except_ for a handful, you can add a `filter` entry under the `merge`:
+Saying `merge: true` will merge all fields from the input message into the output message. If you want all of them _except_ for certain ones, you can add a `filter` entry under the `merge`:
 
     - label: Variant
       gid: "variant:{{referenceName}}:{{start}}:{{end}}:{{referenceBases}}:{{alternateBases}}"
