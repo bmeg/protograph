@@ -251,7 +251,7 @@
       to: "{{_index.id}}"
       properties:
         response: "{{association.response_type}}"
-    - index: association.evidence.0.info.publications
+    - index: "{{association.evidence.0.info.publications|flatten}}"
       fromLabel: Evidence
       label: evidence
       toLabel: Pubmed
@@ -262,5 +262,3 @@
       toLabel: OntologyTerm
       from: "evidence:{{genes|sort|join:,}}:{{association.phenotype.description}}"
       to: "term:{{association.phenotype.description}}"
-      
-      

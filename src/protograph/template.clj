@@ -117,8 +117,9 @@
   [top-level fields {:keys [index] :as directive} entity]
   (if (empty? index)
     (process-entity top-level fields directive entity)
-    (let [path (parse-index index)
-          series (get-in entity path)]
+    (let [;; path (parse-index index)
+          ;; series (get-in entity path)
+          series (evaluate-template index context)]
       (mapcat
        (comp
         (partial process-entity top-level fields directive)
