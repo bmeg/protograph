@@ -1,0 +1,37 @@
+syntax = "proto3";
+
+package protograph;
+
+message Protograph {
+    repeated Transform transforms = 1;
+}
+
+message Transform {
+    string label = 1;
+    repeated VertexTransform vertexes = 2;
+    repeated EdgeTransform edges = 3;
+}
+
+message VertexTransform {
+    string label = 1;
+    string gid = 2;
+    map<string, string> properties = 3;
+
+    bool merge = 10;
+    repeated string filter = 11;
+    repeated string splice = 12;
+}
+
+message EdgeTransform {
+    string label = 1;
+    string fromLabel = 2;
+    string toLabel = 3;
+    string from = 4;
+    string to = 5;
+    map<string, string> properties = 6;
+
+    bool merge = 10;
+    repeated string filter = 11;
+    repeated string splice = 12;
+    string lookup = 13;
+}
