@@ -51,7 +51,7 @@ An edge has two terminals, a `from` and `to`, each with their own labels:
 
     - label: Variant
       gid: "variant:{{referenceName}}:{{start}}:{{end}}:{{referenceBases}}:{{alternateBases}}"
-      nodes:
+      vertexes:
         - label: Variant
           merge: true
           filter:
