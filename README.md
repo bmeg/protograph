@@ -122,6 +122,43 @@ To specify the transformations, you declare what vertexes and edges are generate
         from: "variant:{{referenceName}}:{{start}}:{{end}}:{{referenceBases}}:{{alternateBases}}"
         to: "{{sample}}"
   
+## protograph fields are constructed using selmer templates
+
+Each field in protograph uses a template to construct its final value out of fields in the provided input message. These templates use the double curly brace paradigm to splice values into a larger string. In its simplest form this can literally be splicing a value from the input map directly in:
+
+    # this input
+    {value: 5}
+
+    # through this template
+    "{{value}}"
+
+    # creates this output
+    5
+
+These templates can use dot notation to access into a nested structure:
+
+    # this input
+    {outer: {inner: {container: [{jewel: 88888}]}}}
+
+    # through this template
+    "extracting the {{outer.inner.container.0.jewel}}"
+
+    # creates this output
+    extracting the 88888
+
+There are even simple filters you can trigger using the `|` operator:
+
+    # this input
+    {piles: [1, 2, 3, 5, 4, 5, 2, 3, 4, 1]}
+
+    # through this template
+    "{{piles|join:!}}"
+
+    # creates this output
+    1!2!3!5!4!5!2!3!4!1
+
+There are a variety of filters available. For more information check out the [Selmer documentation](https://github.com/yogthos/Selmer#filters).
+
 # how to write protograph
 
 
