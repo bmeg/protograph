@@ -8,7 +8,7 @@ Transform a stream of messages into a graph
 
 Protograph is a protocol for transforming messages encoded in any given schema into a set of graph vertexes and edges. 
 
-To do this, you compose a `protograph.yml` describing how to create vertexes and edges given a message of a certain type (called "label" in Protograph).
+To do this, you compose a `protograph.yml` describing how to create vertexes and edges given a message of a variety of shapes (called _labels_ in Protograph).
 
 Given a well-constructed `protograph.yml`, input for Protograph is a stream of messages described in a [Protocol Buffers schema](https://developers.google.com/protocol-buffers/), and the output is a list of vertexes and edges, in a schema of their own.
 
