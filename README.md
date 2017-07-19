@@ -82,6 +82,8 @@ An edge has two terminals, a `from` and `to`, each with their own labels:
      "gid": "(variant:1:10521380:10521380:A:-)--variantInBiosample->(biosample:CCLE:1321N1_CENTRAL_NERVOUS_SYSTEM)",
      "properties": {}}
 
+To see a larger example, check out the [`protograph.yml` that comes with this repository](https://github.com/bmeg/protograph/blob/master/resources/config/protograph.yml).
+
 ## protograph works with typed messages
 
 Protograph directives are partitioned by type. When creating a protobuffer schema you declare a series of message types, and in `protograph.yml` you refer to these type names when declaring how each message will be processed. This lives under the `label` key:
