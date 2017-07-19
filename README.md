@@ -23,18 +23,18 @@ To Protograph, vertexes and edges contain properties: ie, key/value pairs which 
 
 A vertex contains three keys:
 
-* label (a string declaring the type of vertex)
-* gid (a globally unique identifier constructed from the data contained in the message
-* properties (containing all of the other data)
+* **label** (a string declaring the type of vertex)
+* **gid** (a globally unique identifier constructed from the data contained in the message
+* **properties** (containing all of the other data)
 
 An edge has two terminals, a `from` and `to`, each with their own labels:
 
-* fromLabel
-* toLabel
-* label (the label of the edge itself).
-* from
-* to
-* properties (once again, the rest of the data is here).
+* **fromLabel**
+* **toLabel**
+* **label** (the label of the edge itself).
+* **from**
+* **to**
+* **properties** (once again, the rest of the data is here).
 
 ## A basic example
 
