@@ -159,6 +159,7 @@
 (filters/add-filter! :each (fn [s k] (mapv #(get % (keyword k)) s)))
 (filters/add-filter! :flatten flatten)
 (filters/add-filter! :split (fn [s d] (string/split s (re-pattern d))))
+(filters/add-filter! :or (fn [& is] (first (drop-while empty? is))))
 
 (defn load-protograph
   [path]
@@ -167,6 +168,10 @@
      (fn [protograph spec]
        (assoc protograph (:label spec) (select-keys spec [:vertexes :edges])))
      {} raw)))
+
+(defn graph-structure
+  [protograph]
+  )
 
 (defn partial-state
   []
