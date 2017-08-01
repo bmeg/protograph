@@ -122,7 +122,7 @@
 (defn process-index
   [top-level fields {:keys [index] :as directive} entity]
   (if (empty? index)
-    (process-entity top-level fields directive entity)
+    (process-entity top-level fields directive (assoc entity :_index entity))
     (let [;; path (parse-index index)
           ;; series (get-in entity path)
           series (evaluate-body index entity)]
@@ -156,10 +156,16 @@
         directive (get protograph label)]
     (process-directive (assoc directive :state state) message)))
 
+(defn template-or
+  [m & is]
+  (let [out (mapv #(get m (keyword %)) is)]
+    (first
+     (drop-while empty? out))))
+
 (filters/add-filter! :each (fn [s k] (mapv #(get % (keyword k)) s)))
 (filters/add-filter! :flatten flatten)
 (filters/add-filter! :split (fn [s d] (string/split s (re-pattern d))))
-(filters/add-filter! :or (fn [& is] (first (drop-while empty? is))))
+(filters/add-filter! :or template-or)
 
 (defn load-protograph
   [path]
