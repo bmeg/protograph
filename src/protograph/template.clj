@@ -122,7 +122,7 @@
 (defn process-index
   [top-level fields {:keys [index] :as directive} entity]
   (if (empty? index)
-    (process-entity top-level fields directive (assoc entity :_index entity))
+    (process-entity top-level fields directive (assoc entity :_self entity))
     (let [;; path (parse-index index)
           ;; series (get-in entity path)
           series (evaluate-body index entity)]
@@ -158,7 +158,10 @@
 
 (defn template-or
   [m & is]
+  (log/info m)
+  (log/info (mapv identity is))
   (let [out (mapv #(get m (keyword %)) is)]
+  (log/info out)
     (first
      (drop-while empty? out))))
 
