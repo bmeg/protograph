@@ -97,7 +97,7 @@
         merged (if (:merge directive)
                  (merge entity out)
                  out)
-        slim (apply dissoc merged (map keyword (concat splice filter)))
+        slim (apply dissoc merged (map keyword (concat splice filter [:_index :_self])))
         onto (assoc top :properties slim)]
     (if lookup
       (let [look (evaluate-template lookup entity)
@@ -158,10 +158,7 @@
 
 (defn template-or
   [m & is]
-  ;;(log/info m)
-  ;;(log/info (mapv identity is))
   (let [out (mapv #(get m (keyword %)) is)]
-  ;;(log/info out)
     (first
      (drop-while empty? out))))
 
