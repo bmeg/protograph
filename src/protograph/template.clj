@@ -158,10 +158,10 @@
 
 (defn template-or
   [m & is]
-  (log/info m)
-  (log/info (mapv identity is))
+  ;;(log/info m)
+  ;;(log/info (mapv identity is))
   (let [out (mapv #(get m (keyword %)) is)]
-  (log/info out)
+  ;;(log/info out)
     (first
      (drop-while empty? out))))
 
