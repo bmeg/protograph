@@ -162,10 +162,19 @@
     (first
      (drop-while empty? out))))
 
+(defn check-pubchemtype
+  [pubchemtype]
+  (cond 
+    (= pubchemtype "compound") "CID"
+    (= pubchemtype "substance") "SID"
+    :else ""))
+
+
 (filters/add-filter! :each (fn [s k] (mapv #(get % (keyword k)) s)))
 (filters/add-filter! :flatten flatten)
 (filters/add-filter! :split (fn [s d] (string/split s (re-pattern d))))
 (filters/add-filter! :or template-or)
+(filters/add-filter! :type check-pubchemtype)
 
 (defn load-protograph
   [path]
