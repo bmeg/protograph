@@ -175,9 +175,37 @@
        (assoc protograph (:label spec) (select-keys spec [:vertexes :edges])))
      {} raw)))
 
+(defn protograph->vertexes
+  [protograph]
+  (reduce
+   into []
+   (map
+    (fn [[message {:keys [vertexes]}]]
+      (map
+       (fn [{:keys [label]}]
+         {:gid label :label label :properties {}})
+       vertexes))
+    protograph)))
+
+(defn protograph->edges
+  [protograph]
+  (reduce
+   into []
+   (map
+    (fn [[message {:keys [edges]}]]
+      (map
+       (fn [{:keys [fromLabel label toLabel]}]
+         {:from fromLabel :label label :to toLabel :properties {}})
+       edges))
+    protograph)))
+
 (defn graph-structure
   [protograph]
-  )
+  (let [vertexes (protograph->vertexes protograph)
+        edges (protograph->edges protograph)]
+    {:vertexes (group-by :label vertexes)
+     :from (group-by :from edges)
+     :to (group-by :to edges)}))
 
 (defn partial-state
   []
