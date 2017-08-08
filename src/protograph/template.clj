@@ -208,13 +208,23 @@
        edges))
     protograph)))
 
+(defn set-group
+  [f s]
+  (into
+   {}
+   (map
+    (fn [[k v]]
+      [k (set v)])
+    (group-by f s))))
+
 (defn graph-structure
   [protograph]
   (let [vertexes (protograph->vertexes protograph)
-        edges (protograph->edges protograph)]
-    {:vertexes (group-by :label vertexes)
-     :from (group-by :from edges)
-     :to (group-by :to edges)}))
+        edges (protograph->edges protograph)
+        vertex-map (into {} (map (juxt :label identity) vertexes))]
+    {:vertexes vertex-map
+     :from (set-group :from edges)
+     :to (set-group :to edges)}))
 
 (defn partial-state
   []
