@@ -265,6 +265,27 @@
          (kafka/dir->files path))]
     (apply merge-with into (flatten out))))
 
+(defn transform-dir-write
+  [protograph write path]
+  (let [state (partial-state)]
+    (doseq [file (kafka/dir->files path)]
+      (log/info file)
+      (let [label (kafka/path->label (.getName file))
+            lines (line-seq (io/reader file))]
+        (doseq [line lines]
+          (print ".")
+          (try
+            (let [data (json/parse-string line true)
+                  out (process-message
+                       (assoc protograph :state state)
+                       (assoc data :_label label))]
+              (write out))
+            (catch Exception e
+              (.printStackTrace e)
+              (log/info e)
+              (log/info line)
+              {:vertexes [] :edges []})))))))
+
 (defn write-output
   [prefix entities]
   (let [writer (io/writer (str prefix ".json"))]
@@ -282,12 +303,30 @@
    ["-t" "--topic TOPIC" "input topic to read from"]
    ["-x" "--prefix PREFIX" "output topic prefix"]])
 
+(defn converge-writer
+  [prefix]
+  (let [vertex-writer (io/writer (str prefix ".Vertex.json") :append true)
+        edge-writer (io/writer (str prefix ".Edge.json") :append true)]
+    {:write
+     (fn [{:keys [vertexes edges]}]
+       (doseq [vertex vertexes]
+         (.write vertex-writer (str (json/generate-string vertex) "\n")))
+       (doseq [edge edges]
+         (.write edge-writer (str (json/generate-string edge) "\n"))))
+     :close
+     (fn []
+       (.close vertex-writer)
+       (.close edge-writer))}))
+
 (defn -main
   [& args]
   (let [env (:options (cli/parse-opts args parse-args))
         protograph (load-protograph (:protograph env))
-        {:keys [vertexes edges]} (transform-dir protograph (:input env))
-        _ (log/info "vertexes" (count vertexes) "edges" (count edges))
-        output (:output env)]
-    (write-output (str output ".Vertex") vertexes)
-    (write-output (str output ".Edge") edges)))
+        ;; {:keys [vertexes edges]} (transform-dir protograph (:input env))
+        ;; _ (log/info "vertexes" (count vertexes) "edges" (count edges))
+        output (:output env)
+        writer (converge-writer output)]
+    ;; (write-output (str output ".Vertex") vertexes)
+    ;; (write-output (str output ".Edge") edges)
+    (transform-dir-write protograph (:write writer) (:input env))
+    ((:close writer))))
