@@ -13,6 +13,18 @@
    [protograph.kafka :as kafka])
   (:gen-class))
 
+(defn convert-int
+  [n]
+  (try
+    (Integer/parseInt n)
+    (catch Exception e 0)))
+
+(defn convert-float
+  [r]
+  (try
+    (Double/parseDouble r)
+    (catch Exception e 0.0)))
+
 (def defaults
   {})
 
@@ -25,9 +37,22 @@
   [f m]
   (into {} (map (fn [[k v]] [k (f v)]) m)))
 
+(def dot #"\.")
+
 (defn evaluate-map
   [m context]
-  (map-values #(evaluate-template % context) m))
+  (into
+   {}
+   (map
+    (fn [[k template]]
+      (let [press (evaluate-template template context)
+            [key type] (string/split k dot)
+            outcome (condp = type
+                      "int" (convert-int press)
+                      "float" (convert-float press)
+                      press)]
+        [key outcome]))
+    m)))
 
 (defn splice-maps
   [before splices context]
@@ -36,17 +61,17 @@
      (merge after (get context (keyword splice))))
    before splices))
 
-(defn parse-unit
-  [u]
-  (try
-    (Integer/parseInt u)
-    (catch Exception e
-      (keyword u))))
+;; (defn parse-unit
+;;   [u]
+;;   (try
+;;     (Integer/parseInt u)
+;;     (catch Exception e
+;;       (keyword u))))
 
-(defn parse-index
-  [index]
-  (let [parts (string/split index #"\.")]
-    (map parse-unit parts)))
+;; (defn parse-index
+;;   [index]
+;;   (let [parts (string/split index #"\.")]
+;;     (map parse-unit parts)))
 
 (def edge-fields
   {:gid "({{from}})--{{label}}->({{to}})"})
@@ -126,12 +151,28 @@
     (let [;; path (parse-index index)
           ;; series (get-in entity path)
           series (evaluate-body index entity)]
-      (log/info index series)
-      (mapcat
-       (comp
-        (partial process-entity top-level fields directive)
-        (partial assoc entity :_index))
-       series))))
+      ;; (log/info index series)
+
+
+      ;; (mapcat
+      ;;  (comp
+      ;;   (partial process-entity top-level fields directive)
+      ;;   (partial assoc entity :_index))
+      ;;  series))))
+
+      (reduce
+       into []
+       (map
+        (fn [in]
+          (let [payload (assoc entity :_index in)
+                process (process-entity top-level fields directive payload)]
+            process))
+        series)))))
+
+       ;; (comp
+       ;;  (partial process-entity top-level fields directive)
+       ;;  (partial assoc entity :_index))
+       ;; series
 
 (def process-edge
   (partial
@@ -162,19 +203,19 @@
     (first
      (drop-while empty? out))))
 
-(defn check-pubchemtype
-  [pubchemtype]
-  (cond 
-    (= pubchemtype "compound") "CID"
-    (= pubchemtype "substance") "SID"
-    :else ""))
-
+;; (defn check-pubchemtype
+;;   [pubchemtype]
+;;   (cond 
+;;     (= pubchemtype "compound") "CID"
+;;     (= pubchemtype "substance") "SID"
+;;     :else ""))
 
 (filters/add-filter! :each (fn [s k] (mapv #(get % (keyword k)) s)))
 (filters/add-filter! :flatten flatten)
 (filters/add-filter! :split (fn [s d] (string/split s (re-pattern d))))
 (filters/add-filter! :or template-or)
-(filters/add-filter! :type check-pubchemtype)
+(filters/add-filter! :float convert-float)
+;; (filters/add-filter! :type check-pubchemtype)
 
 (defn load-protograph
   [path]
