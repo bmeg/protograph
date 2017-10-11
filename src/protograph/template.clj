@@ -46,7 +46,7 @@
    (map
     (fn [[k template]]
       (let [press (evaluate-template template context)
-            [key type] (string/split k dot)
+            [key type] (string/split (name k) dot)
             outcome (condp = type
                       "int" (convert-int press)
                       "float" (convert-float press)
@@ -60,18 +60,6 @@
    (fn [after splice]
      (merge after (get context (keyword splice))))
    before splices))
-
-;; (defn parse-unit
-;;   [u]
-;;   (try
-;;     (Integer/parseInt u)
-;;     (catch Exception e
-;;       (keyword u))))
-
-;; (defn parse-index
-;;   [index]
-;;   (let [parts (string/split index #"\.")]
-;;     (map parse-unit parts)))
 
 (def edge-fields
   {:gid "({{from}})--{{label}}->({{to}})"})
@@ -148,18 +136,7 @@
   [top-level fields {:keys [index] :as directive} entity]
   (if (empty? index)
     (process-entity top-level fields directive (assoc entity :_self entity))
-    (let [;; path (parse-index index)
-          ;; series (get-in entity path)
-          series (evaluate-body index entity)]
-      ;; (log/info index series)
-
-
-      ;; (mapcat
-      ;;  (comp
-      ;;   (partial process-entity top-level fields directive)
-      ;;   (partial assoc entity :_index))
-      ;;  series))))
-
+    (let [series (evaluate-body index entity)]
       (reduce
        into []
        (map
@@ -168,11 +145,6 @@
                 process (process-entity top-level fields directive payload)]
             process))
         series)))))
-
-       ;; (comp
-       ;;  (partial process-entity top-level fields directive)
-       ;;  (partial assoc entity :_index))
-       ;; series
 
 (def process-edge
   (partial
@@ -203,19 +175,12 @@
     (first
      (drop-while empty? out))))
 
-;; (defn check-pubchemtype
-;;   [pubchemtype]
-;;   (cond 
-;;     (= pubchemtype "compound") "CID"
-;;     (= pubchemtype "substance") "SID"
-;;     :else ""))
-
 (filters/add-filter! :each (fn [s k] (mapv #(get % (keyword k)) s)))
 (filters/add-filter! :flatten flatten)
 (filters/add-filter! :split (fn [s d] (string/split s (re-pattern d))))
 (filters/add-filter! :or template-or)
 (filters/add-filter! :float convert-float)
-;; (filters/add-filter! :type check-pubchemtype)
+(filters/add-filter! :name name)
 
 (defn load-protograph
   [path]
