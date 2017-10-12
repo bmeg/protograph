@@ -158,6 +158,10 @@
    [:label :gid]
    vertex-fields))
 
+(defn mapcat
+  [f s]
+  (reduce into [] (map f s)))
+
 (defn process-directive
   [{:keys [vertexes edges state embedded protograph]} message]
   {:vertexes (mapcat #(process-vertex (assoc % :state state) message) vertexes)
