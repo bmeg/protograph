@@ -1,4 +1,4 @@
-(defproject protograph "0.0.7"
+(defproject protograph "0.0.8"
   :description "tranform a stream of messages into a graph"
   :url "http://github.com/bmeg/protograph"
   :license {:name "Eclipse Public License"
@@ -9,14 +9,8 @@
                  [io.forward/yaml "1.0.6"]
                  [com.taoensso/timbre "4.8.0"]
                  [selmer "1.10.8"]
-                 ;; [io.bmeg/protograph_2.11 "0.0.1-SNAPSHOT"]
                  [clojurewerkz/propertied "1.2.0"]
                  [org.apache.kafka/kafka_2.11 "0.10.0.1"]]
-;;                  [org.apache.kafka/kafka_2.10 "0.10.0.1" :scope "test"
-;;                   :exclusions [;io.netty/netty
-;;                                ;log4j
-;;                                ;org.slf4j/slf4j-api
-;;                                ;org.slf4j/slf4j-log4j12]]
   :repositories [["sonatype snapshots"
                   "https://oss.sonatype.org/content/repositories/snapshots"]
                  ["sonatype releases"
