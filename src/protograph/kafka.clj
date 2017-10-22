@@ -23,7 +23,7 @@
 (def consumer-defaults
   (merge
    string-deserializer
-   {"auto.offset.reset" "earliest"
+   {;; "auto.offset.reset" "earliest"
     "enable.auto.commit" "true"
     "auto.commit.interval.ms" "1000"
     "max.poll.records" "80"
@@ -35,11 +35,18 @@
   []
   (str (UUID/randomUUID)))
 
+(defn compose-host
+  [config]
+  (str (get config :host "localhost") ":" (get config :port "9092")))
+
 (defn producer
-  ([host] (producer host {}))
-  ([host props]
-   (let [config (merge string-serializer {"bootstrap.servers" host} props)]
-     (new KafkaProducer config))))
+  ([] (producer {}))
+  ([config]
+   (log/info "kafka producer" config)
+   (let [host (compose-host config)
+         base {"bootstrap.servers" host}
+         props (merge string-serializer base (or (:producer config) {}))]
+     (new KafkaProducer props))))
 
 (defn send-message
   [producer topic message]
@@ -48,10 +55,11 @@
 
 (defn consumer
   ([] (consumer {}))
-  ([{:keys [host group-id topics props]}]
+  ([{:keys [group-id topics props] :as config}]
+   (log/info "kafka consumer" config)
    (let [config (merge
                  consumer-defaults
-                 {"bootstrap.servers" (or host "localhost:9092")
+                 {"bootstrap.servers" (compose-host config)
                   "group.id" (or group-id (uuid))}
                  props)
          devour (new KafkaConsumer (props/map->properties config))]
@@ -65,11 +73,11 @@
 
 (defn consume
   [in handle-message]
-  (loop [records (.poll in 1000)]
+  (loop [records (.poll in Long/MAX_VALUE)]
     (when-not (.isEmpty records)
       (doseq [record records]
         (handle-message record))
-      (recur (.poll in 1000)))))
+      (recur (.poll in Long/MAX_VALUE)))))
 
 (defn subscribe
   [in topics]
@@ -159,17 +167,6 @@
   (let [host (:host config)
         spout (producer host)]
     (dir->streams spout path)))
-
-;; (defn kafka-host
-;;   []
-;;   (or
-;;    (System/getenv "KAFKA_HOST")
-;;    "localhost"))
-
-;; (def default-config
-;;   {:host (str (kafka-host) ":9092")
-;;    :consumer
-;;    {:group-id (uuid)}})
 
 (def parse-args
   [["-k" "--kafka KAFKA" "host for kafka server"
