@@ -87,17 +87,17 @@
 
 (defn merge-edges
   [a b]
-  (let [properties (merge (:properties a) (:properties b))
+  (let [data (merge (:data a) (:data b))
         top (merge a b)
         onto (merge top (evaluate-map edge-fields top))]
-    (assoc onto :properties properties)))
+    (assoc onto :data data)))
 
 (defn process-entity
   [top-level
    fields
    {:keys
     [state
-     properties
+     data
      splice
      filter
      lookup]
@@ -105,13 +105,13 @@
    entity]
   (let [core (select-keys directive top-level)
         top (evaluate-map core entity)
-        properties (evaluate-map properties entity)
-        out (splice-maps properties splice entity)
+        data (evaluate-map data entity)
+        out (splice-maps data splice entity)
         merged (if (:merge directive)
                  (merge entity out)
                  out)
         slim (apply dissoc merged (map keyword (concat splice filter [:_index :_self])))
-        onto (assoc top :properties slim)]
+        onto (assoc top :data slim)]
     (if lookup
       (let [look (evaluate-template lookup entity)
             partials (lookup-partials state onto)
@@ -202,7 +202,7 @@
     (fn [[message {:keys [vertexes]}]]
       (map
        (fn [{:keys [label]}]
-         {:gid label :label label :properties {}})
+         {:gid label :label label :data {}})
        vertexes))
     protograph)))
 
@@ -214,7 +214,7 @@
     (fn [[message {:keys [edges]}]]
       (map
        (fn [{:keys [fromLabel label toLabel]}]
-         {:from fromLabel :label label :to toLabel :properties {}})
+         {:from fromLabel :label label :to toLabel :data {}})
        edges))
     protograph)))
 
