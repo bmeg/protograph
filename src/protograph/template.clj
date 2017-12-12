@@ -35,7 +35,11 @@
 
 (defn map-values
   [f m]
-  (into {} (map (fn [[k v]] [k (f v)]) m)))
+  (into
+   {}
+   (map
+    (fn [[k v]]
+      [k (f v)]) m)))
 
 (def dot #"\.")
 
@@ -51,7 +55,7 @@
                       "int" (convert-int press)
                       "float" (convert-float press)
                       press)]
-        [key outcome]))
+        [(keyword key) outcome]))
     m)))
 
 (defn splice-maps
