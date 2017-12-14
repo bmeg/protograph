@@ -5,31 +5,37 @@
    [protograph.template :as template]))
 
 (def test-protograph
-  {"Yellow"
-   [{:out "vertex"
-     :gid "yellow:{{id}}"
-     :label "Yellow"
-     :splice ["info"]
-     :properties
-     {:primary "primary({{info.base}})"
-      :under "{{over}}"}}
-    {:out "edge"
-     :from-label "Yellow"
-     :from "yellow:{{id}}"
-     :label "yellowConnects"
-     :to-label "Green"
-     :to "green:{{greens.id}}"}]
+  {"yellow.Yellow"
+   {:vertexes
+    [{:gid "yellow:{{id}}"
+      :label "Yellow"
+      :splice ["info"]
+      :data
+      {:primary "primary({{info.base}})"
+       :under "{{over}}"}}]
+    :edges
+    [{:from-label "Yellow"
+      :from "yellow:{{id}}"
+      :label "yellowConnects"
+      :to-label "Green"
+      :to "green:{{greens.id}}"}]}
 
-   "Green" []
-   "Red" []})
+   "Green" {}
+   "Red" {}})
 
 (def bmeg
   (template/load-protograph "resources/config/protograph.yml"))
 
 (deftest template-test
   (testing "protograph template output"
-    (let [out (template/process-message test-protograph {:_label "Yellow" :id "obor" :info {:base "c" :under "x"} :over 33333 :greens {:id "thing"}})]
+    (let [out (template/process-message test-protograph {:_label "yellow.Yellow" :id "obor" :info {:base "c" :under "x"} :over 33333 :greens {:id "thing"}})]
       (log/info out))))
+
+(deftest path-test
+  (testing "protograph template output"
+    (let [writer (template/string-writer)]
+      (template/transform-dir-write test-protograph (:write writer) "resources/test/yellow")
+      (log/info "reading test protograph" (:close writer)))))
 
 (deftest bmeg-test
   (testing ""))

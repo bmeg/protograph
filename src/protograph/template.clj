@@ -11,6 +11,8 @@
    [cheshire.core :as json]
    [yaml.core :as yaml]
    [protograph.kafka :as kafka])
+  (:import
+   [java.io StringWriter])
   (:gen-class))
 
 (defn convert-int
@@ -246,38 +248,39 @@
    :sources (atom {})
    :terminals (atom {})})
 
-(defn transform-dir
-  [protograph path]
-  (let [state (partial-state)
-        out
-        (mapv
-         (fn [file]
-           (log/info file)
-           (let [label (kafka/path->label (.getName file))
-                 lines (line-seq (io/reader file))]
-             (mapv
-              (fn [line]
-                (try
-                  (let [data (json/parse-string line true)
-                        out (process-message
-                             (assoc protograph :state state)
-                             (assoc data :_label label))]
-                    out)
-                  (catch Exception e
-                    (.printStackTrace e)
-                    (log/info e)
-                    (log/info line)
-                    {:vertexes [] :edges []})))
-              lines)))
-         (kafka/dir->files path))]
-    (apply merge-with into (flatten out))))
+;; (defn transform-dir
+;;   [protograph path]
+;;   (let [state (partial-state)
+;;         out
+;;         (mapv
+;;          (fn [file]
+;;            (log/info file)
+;;            (let [label (kafka/path->label (.getName file))
+;;                  lines (line-seq (io/reader file))]
+;;              (mapv
+;;               (fn [line]
+;;                 (try
+;;                   (let [data (json/parse-string line true)
+;;                         out (process-message
+;;                              (assoc protograph :state state)
+;;                              (assoc data :_label label))]
+;;                     out)
+;;                   (catch Exception e
+;;                     (.printStackTrace e)
+;;                     (log/info e)
+;;                     (log/info line)
+;;                     {:vertexes [] :edges []})))
+;;               lines)))
+;;          (kafka/dir->files path))]
+;;     (apply merge-with into (flatten out))))
 
 (defn transform-dir-write
   [protograph write path]
-  (let [state (partial-state)]
+  (let [state (partial-state)
+        labels (map name (keys protograph))]
     (doseq [file (kafka/dir->files path)]
       (log/info file)
-      (let [label (kafka/path->label (.getName file))
+      (let [label (kafka/find-label labels (.getName file))
             lines (line-seq (io/reader file))]
         (doseq [line lines]
           (try
@@ -285,6 +288,7 @@
                   out (process-message
                        (assoc protograph :state state)
                        (assoc data :_label label))]
+              (log/info "output of line" out)
               (write out))
             (catch Exception e
               (.printStackTrace e)
@@ -309,30 +313,38 @@
    ["-t" "--topic TOPIC" "input topic to read from"]
    ["-x" "--prefix PREFIX" "output topic prefix"]])
 
+(defn write-graph
+  [vertex-writer edge-writer {:keys [vertexes edges]}]
+  (doseq [vertex vertexes]
+    (.write vertex-writer (str (json/generate-string vertex) "\n")))
+  (doseq [edge edges]
+    (.write edge-writer (str (json/generate-string edge) "\n"))))
+
 (defn converge-writer
   [prefix]
   (let [vertex-writer (io/writer (str prefix ".Vertex.json") :append true)
         edge-writer (io/writer (str prefix ".Edge.json") :append true)]
-    {:write
-     (fn [{:keys [vertexes edges]}]
-       (doseq [vertex vertexes]
-         (.write vertex-writer (str (json/generate-string vertex) "\n")))
-       (doseq [edge edges]
-         (.write edge-writer (str (json/generate-string edge) "\n"))))
+    {:write (partial write-graph vertex-writer edge-writer)
      :close
      (fn []
        (.close vertex-writer)
        (.close edge-writer))}))
 
+(defn string-writer
+  []
+  (let [vertex-writer (StringWriter.)
+        edge-writer (StringWriter.)]
+    {:write (partial write-graph vertex-writer edge-writer)
+     :close
+     (fn []
+       {:vertex (.toString vertex-writer)
+        :edge (.toString edge-writer)})}))
+
 (defn -main
   [& args]
   (let [env (:options (cli/parse-opts args parse-args))
         protograph (load-protograph (:protograph env))
-        ;; {:keys [vertexes edges]} (transform-dir protograph (:input env))
-        ;; _ (log/info "vertexes" (count vertexes) "edges" (count edges))
         output (:output env)
         writer (converge-writer output)]
-    ;; (write-output (str output ".Vertex") vertexes)
-    ;; (write-output (str output ".Edge") edges)
     (transform-dir-write protograph (:write writer) (:input env))
     ((:close writer))))
