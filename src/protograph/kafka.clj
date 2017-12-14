@@ -162,6 +162,26 @@
         (log/info "populating new topic" topic)
         (file->stream out file topic)))))
 
+(defn match-label
+  [parts label]
+  (loop [left parts]
+    (if-not (empty? left)
+      (let [maybe (string/join "." left)]
+        (if (= label maybe)
+          maybe
+          (recur (rest left)))))))
+
+(defn match-labels
+  [labels s]
+  (let [parts (string/split s #"\.")
+        relevant (butlast parts)]
+    (filter (partial match-label relevant) labels)))
+
+(defn find-label
+  [labels s]
+  (let [matching (match-labels labels s)]
+    (first (sort-by count > matching))))
+
 (defn spout-dir
   [config path]
   (let [host (:host config)

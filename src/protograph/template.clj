@@ -257,7 +257,6 @@
                  lines (line-seq (io/reader file))]
              (mapv
               (fn [line]
-                (print ".")
                 (try
                   (let [data (json/parse-string line true)
                         out (process-message
@@ -281,7 +280,6 @@
       (let [label (kafka/path->label (.getName file))
             lines (line-seq (io/reader file))]
         (doseq [line lines]
-          (print ".")
           (try
             (let [data (json/parse-string line true)
                   out (process-message
