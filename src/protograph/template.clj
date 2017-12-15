@@ -248,32 +248,6 @@
    :sources (atom {})
    :terminals (atom {})})
 
-;; (defn transform-dir
-;;   [protograph path]
-;;   (let [state (partial-state)
-;;         out
-;;         (mapv
-;;          (fn [file]
-;;            (log/info file)
-;;            (let [label (kafka/path->label (.getName file))
-;;                  lines (line-seq (io/reader file))]
-;;              (mapv
-;;               (fn [line]
-;;                 (try
-;;                   (let [data (json/parse-string line true)
-;;                         out (process-message
-;;                              (assoc protograph :state state)
-;;                              (assoc data :_label label))]
-;;                     out)
-;;                   (catch Exception e
-;;                     (.printStackTrace e)
-;;                     (log/info e)
-;;                     (log/info line)
-;;                     {:vertexes [] :edges []})))
-;;               lines)))
-;;          (kafka/dir->files path))]
-;;     (apply merge-with into (flatten out))))
-
 (defn transform-dir-write
   [protograph write path]
   (let [state (partial-state)
