@@ -73,10 +73,6 @@
 (def vertex-fields
   {})
 
-(def partial-vertexes (atom {}))
-(def partial-sources (atom {}))
-(def partial-terminals (atom {}))
-
 (defn lookup-partials
   [state edge]
   (cond
