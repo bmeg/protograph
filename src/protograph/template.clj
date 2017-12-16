@@ -134,46 +134,98 @@
   [template context]
   ((parser/compile-filter-body template false) context))
 
+(defn merge-outcomes
+  [outcomes]
+  (reduce
+   (fn [outcome {:keys [vertexes edges]}]
+     (-> outcome 
+         (update :vertexes into vertexes)
+         (update :edges into edges)))
+   {:vertexes []
+    :edges []}
+   outcomes))
+
 (defn process-index
-  [top-level fields {:keys [index] :as directive} entity]
+  [process post {:keys [index] :as directive} message]
   (if (empty? index)
-    (process-entity top-level fields directive (assoc entity :_self entity))
-    (let [series (evaluate-body index entity)]
-      (reduce
-       into []
-       (map
-        (fn [in]
-          (let [payload (assoc entity :_index in)
-                process (process-entity top-level fields directive payload)]
-            process))
-        series)))))
+    (process directive (assoc message :_self message))
+    (let [series (evaluate-body index message)
+          after (mapv
+                 (fn [in]
+                   (process directive (assoc message :_index in)))
+                 series)]
+      (post after))))
 
-(def process-edge
-  (partial
-   process-index
-   [:fromLabel :from :label :toLabel :to]
-   edge-fields))
+(defn process-edge
+  [protograph message]
+  (process-index
+   (partial
+    process-entity
+    [:fromLabel :from :label :toLabel :to]
+    edge-fields)
+   (partial reduce into [])
+   protograph
+   message))
 
-(def process-vertex
-  (partial
-   process-index
-   [:label :gid]
-   vertex-fields))
+(defn process-vertex
+  [protograph message]
+  (process-index
+   (partial
+    process-entity
+    [:label :gid]
+    vertex-fields)
+   (partial reduce into [])
+   protograph
+   message))
+
+  ;; (partial
+  ;;  process-index
+  ;;  (partial
+  ;;   process-entity
+  ;;   [:label :gid]
+  ;;   vertex-fields))
+
+(declare process-directive)
+
+(defn process-inner
+  [protograph state {:keys [path label]} message]
+  (if (and path label)
+    (let [inner (evaluate-body path message)
+          directive (get protograph label)
+          directive (assoc directive :state state)]
+      (process-directive protograph directive inner))
+    []))
+
+(defn process-inner-index
+  [protograph state inner message]
+  (if inner
+    (process-index
+     (partial process-inner protograph state)
+     merge-outcomes
+     inner
+     message)
+    {:vertexes [] :edges []}))
 
 (defn mapcat
   [f s]
   (reduce into [] (map f s)))
 
 (defn process-directive
-  [{:keys [vertexes edges state embedded protograph]} message]
-  {:vertexes (mapcat #(process-vertex (assoc % :state state) message) vertexes)
-   :edges (mapcat #(process-edge (assoc % :state state) message) edges)})
+  [protograph {:keys [vertexes edges state inner] :as directive} message]
+  (let [down (mapv #(process-inner-index protograph state % message) inner)
+        down (merge-outcomes down)
+        v (mapcat #(process-vertex (assoc % :state state) message) vertexes)
+        e (mapcat #(process-edge (assoc % :state state) message) edges)
+        v (into (:vertexes down) v)
+        e (into (:edges down) e)]
+    {:vertexes v
+     :edges e}))
 
 (defn process-message
   [{:keys [state] :as protograph} message]
   (let [label (get message :_label)
         directive (get protograph label)]
-    (process-directive (assoc directive :state state) message)))
+    (process-directive protograph (assoc directive :state state) message)))
 
 (defn template-or
   [m & is]

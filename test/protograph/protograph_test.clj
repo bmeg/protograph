@@ -22,7 +22,7 @@
       :to "green:{{_index.id}}"}]
     :inner
     [{:index "greens"
-      :path "{{_index}}"
+      :path "_index"
       :label "Green"}]}
 
    "Green"
@@ -30,10 +30,12 @@
     [{:gid "green:{{id}}"
       :label "Green"}]
     :inner
-    [{:path "{{orange}}"
+    [{:path "orange"
       :label "Orange"}]}
 
-   "Red" {}
+   "Red"
+   {}
+
    "Orange"
    {:vertexes
     [{:gid "orange:{{flail}}"
