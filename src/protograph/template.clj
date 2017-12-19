@@ -310,7 +310,6 @@
                   out (process-message
                        (assoc protograph :state state)
                        (assoc data :_label label))]
-              (log/info "output of line" out)
               (write out))
             (catch Exception e
               (.printStackTrace e)
