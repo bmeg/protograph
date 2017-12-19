@@ -297,12 +297,12 @@
    :terminals (atom {})})
 
 (defn transform-dir-write
-  [protograph write path]
+  [protograph write {:keys [input label]}]
   (let [state (partial-state)
         labels (map name (keys protograph))]
-    (doseq [file (kafka/dir->files path)]
+    (doseq [file (kafka/dir->files input)]
       (log/info file)
-      (let [label (kafka/find-label labels (.getName file))
+      (let [label (or label (kafka/find-label labels (.getName file)))
             lines (line-seq (io/reader file))]
         (doseq [line lines]
           (try
@@ -328,11 +328,11 @@
 (def parse-args
   [["-p" "--protograph PROTOGRAPH" "path to protograph.yml"
     :default "protograph.yml"]
-   ["-k" "--kafka KAFKA" "host for kafka server"
-    :default "localhost:9092"]
-   ["-l" "--label LABEL" "label of inputs"]
+   ["-l" "--label LABEL" "label for inputs (if omitted, label is derived from filenames)"]
    ["-i" "--input INPUT" "input file or directory"]
    ["-o" "--output OUTPUT" "prefix for output file"]
+   ["-k" "--kafka KAFKA" "host for kafka server"
+    :default "localhost:9092"]
    ["-t" "--topic TOPIC" "input topic to read from"]
    ["-x" "--prefix PREFIX" "output topic prefix"]])
 
@@ -365,9 +365,15 @@
 
 (defn -main
   [& args]
-  (let [env (:options (cli/parse-opts args parse-args))
-        protograph (load-protograph (:protograph env))
-        output (:output env)
-        writer (converge-writer output)]
-    (transform-dir-write protograph (:write writer) (:input env))
-    ((:close writer))))
+  (let [shell (cli/parse-opts args parse-args)
+        summary (:summary shell)]
+    (try
+      (let [env (:options shell)
+            protograph (load-protograph (:protograph env))
+            output (:output env)
+            writer (converge-writer output)]
+        (transform-dir-write protograph (:write writer) env)
+        ((:close writer)))
+      (catch Exception e
+        (.printStackTrace e)
+        (log/info summary)))))

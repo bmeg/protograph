@@ -62,7 +62,11 @@
 (deftest path-test
   (testing "protograph template output"
     (let [writer (template/string-writer)
-          process (template/transform-dir-write test-protograph (:write writer) "resources/test/yellow")
+          process (template/transform-dir-write
+                   test-protograph
+                   (:write writer)
+                   {:input "resources/test/yellow"
+                    :label "yellow.Yellow"})
           outcome ((:close writer))]
       (log/info "vertexes" (:vertex outcome))
       (log/info "edges" (:edge outcome)))))
