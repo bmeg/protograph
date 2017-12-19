@@ -330,6 +330,7 @@
     :default "protograph.yml"]
    ["-k" "--kafka KAFKA" "host for kafka server"
     :default "localhost:9092"]
+   ["-l" "--label LABEL" "label of inputs"]
    ["-i" "--input INPUT" "input file or directory"]
    ["-o" "--output OUTPUT" "prefix for output file"]
    ["-t" "--topic TOPIC" "input topic to read from"]
