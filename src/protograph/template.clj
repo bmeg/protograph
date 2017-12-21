@@ -325,8 +325,8 @@
     (.close writer)))
 
 (def parse-args
-  [["-p" "--protograph PROTOGRAPH" "path to protograph.yml"
-    :default "protograph.yml"]
+  [["-p" "--protograph PROTOGRAPH" "path to protograph.yaml"
+    :default "protograph.yaml"]
    ["-l" "--label LABEL" "label for inputs (if omitted, label is derived from filenames)"]
    ["-i" "--input INPUT" "input file or directory"]
    ["-o" "--output OUTPUT" "prefix for output file"]
