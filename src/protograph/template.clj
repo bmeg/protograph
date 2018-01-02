@@ -245,7 +245,7 @@
   (let [raw (yaml/parse-string (slurp path))]
     (reduce
      (fn [protograph spec]
-       (assoc protograph (:label spec) (select-keys spec [:vertexes :edges])))
+       (assoc protograph (:label spec) (select-keys spec [:label :match :vertexes :edges])))
      {} raw)))
 
 (defn protograph->vertexes
@@ -296,6 +296,25 @@
    :sources (atom {})
    :terminals (atom {})})
 
+(defn match-label
+  [match message]
+  (not
+   (empty?
+    (filter
+     (fn [[k v]]
+       (= (get message k) v))
+     match))))
+
+(defn match-labels
+  [protograph message]
+  (let [match (map (juxt :match identity) (vals protograph))
+        found (first
+               (filter
+                (fn [[m p]]
+                  (match-label m message))
+                match))]
+    (get (last found) :label)))
+
 (defn transform-dir-write
   [protograph write {:keys [input label]}]
   (let [state (partial-state)
@@ -307,6 +326,7 @@
         (doseq [line lines]
           (try
             (let [data (json/parse-string line true)
+                  label (or (match-labels protograph data) label)
                   out (process-message
                        (assoc protograph :state state)
                        (assoc data :_label label))]
