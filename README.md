@@ -338,14 +338,16 @@ In order to specify the type of a field, under the `data` key you can append `.i
     ....
     gid: "orb:{{name}}"
     data:
-      orb: inner.orb
+      orb: "{{inner.orb}}"
     ....
 
 Input:
 
     {....,
      name: glowing,
-     orb: 99919,
+     inner: {
+       orb: 99919
+     },
      ....}
 
 Output:
