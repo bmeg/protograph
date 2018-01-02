@@ -338,39 +338,41 @@ In order to specify the type of a field, under the `data` key you can append `.i
     ....
     gid: "orb:{{name}}"
     data:
-      orb: "{{inner.orb}}"
+      orb: "{{orb}}"
     ....
 
 Input:
 
     {....,
      name: glowing,
-     inner: {
-       orb: 99919
-     },
+     orb: 99919,
      ....}
 
 Output:
 
     {....,
      gid: "orb:glowing",
-     orb: "99919",
-     ....}
+     data: {
+       orb: "99919",
+       ....
+     }}
 
 Not what we wanted (`orb` is output as a string). We can edit the `protograph.yaml` to give the `orb` field its proper type:
 
     ....
     gid: "orb:{{name}}"
     data:
-      orb.int: inner.orb
+      orb.int: "{{orb}}"
     ....
 
 Now our output becomes:
 
     {....,
      gid: "orb:glowing",
-     orb: 99919,
-     ....}
+     data: {
+       orb: 99919,
+       ....
+     }}
 
 Much better!
 
