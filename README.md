@@ -387,6 +387,10 @@ Here is how this works. Alongside the other top-level protograph keys (`label`, 
       path: some.inner.key
       label: Inside
 
+    label: Inside
+    vertexes:
+      ....
+
 Now, whenever we process a `Container` message, whatever value is nested inside the keys `some.inner.key` will be interpreted as a message with the label `Inside`. This also works with `index`, so you can process a nested list of submessages:
 
     label: Container
