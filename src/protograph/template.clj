@@ -245,7 +245,7 @@
   (let [raw (yaml/parse-string (slurp path))]
     (reduce
      (fn [protograph spec]
-       (assoc protograph (:label spec) (select-keys spec [:label :match :vertexes :edges])))
+       (assoc protograph (:label spec) (select-keys spec [:label :match :vertexes :edges :inner])))
      {} raw)))
 
 (defn protograph->vertexes

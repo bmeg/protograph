@@ -324,7 +324,7 @@ Insidious! Yet, we can handle this as well using the `split` filter:
 
 This makes the edges identical to the previous ones.
 
-## field types
+### field types
 
 Sometimes fields have a type beyond string. Currently supported are:
 
@@ -375,6 +375,25 @@ Now our output becomes:
      }}
 
 Much better!
+
+### nested messages
+
+Sometimes you have a big input message with submessages embedded inside, and you've already written some protograph for those and would rather not repeat yourself. You can trigger the processing of any subpart of a message as if it were the top level of a message with a different (or the same!) label.
+
+Here is how this works. Alongside the other top-level protograph keys (`label`, `match`, `vertexes`, and `edges`) you can add an `inner` key of the form:
+
+    label: Container
+    inner:
+      path: some.inner.key
+      label: Inside
+
+Now, whenever we process a `Container` message, whatever value is nested inside the keys `some.inner.key` will be interpreted as a message with the label `Inside`. This also works with `index`, so you can process a nested list of submessages:
+
+    label: Container
+    inner:
+      index: some.inner.key
+      path: _index.even.deeper
+      label: DeeperInside
 
 # running protograph
 
