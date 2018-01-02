@@ -324,6 +324,54 @@ Insidious! Yet, we can handle this as well using the `split` filter:
 
 This makes the edges identical to the previous ones.
 
+## field types
+
+Sometimes fields have a type beyond string. Currently supported are:
+
+* int
+* float
+
+Otherwise the value is interpreted as a string.
+
+In order to specify the type of a field, under the `data` key you can append `.int` or `.float` to the field name, and they will be interpreted as that type:
+
+    ....
+    gid: "orb:{{name}}"
+    data:
+      orb: inner.orb
+    ....
+
+Input:
+
+    {....,
+     name: glowing,
+     orb: 99919,
+     ....}
+
+Output:
+
+    {....,
+     gid: "orb:glowing",
+     orb: "99919",
+     ....}
+
+Not what we wanted. We can edit the `protograph.yaml` to give the `orb` field its proper type:
+
+    ....
+    gid: "orb:{{name}}"
+    data:
+      orb.int: inner.orb
+    ....
+
+Now our output becomes:
+
+    {....,
+     gid: "orb:glowing",
+     orb: 99919,
+     ....}
+
+Much better!
+
 # running protograph
 
 You can run Protograph either by transforming a directory containing input messages into Vertex and Edge output files, or by consuming a Kafka topic and emitting to another pair of Kafka topics (one for Vertex and one for Edge).
@@ -336,18 +384,12 @@ To run Protograph on a directory of input files, use the `--input` and `--output
 
     java -jar protograph.jar --protograph path/to/protograph.yaml --input /path/to/input/messages.Label.json --output /path/to/output/with/file.prefix
 
-Input files must follow a naming convention where the key into the Protograph description is the penultimate element in the file path, so something like
-
-    we.got.these.from.somewhere.Gene.json
-
-This will trigger processing using the Protograph directives under the `label: Gene` heading. Support for multiple path elements or namespaced messages is not currently supported.
-
 Once processing is complete, it will output two files of the form:
 
     /path/to/output/with/file.prefix.Vertex.json
     /path/to/output/with/file.prefix.Edge.json
 
-depending on what you passed to `--output`.
+depending on what you passed to `--output`. If you know all messages will have a certain label and don't care about matching or parsing to find it, you can specify the label on the command line with `--label`. Note that this will still use the `match` directives to match labels if they have them, so you can use this to provide a default label for unmatched messages.
 
 ## protograph transform using kafka
 
