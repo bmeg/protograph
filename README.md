@@ -102,8 +102,11 @@ The most flexible way is to determine the label from the incoming message. To do
 
 In the above example we had this section:
 
+    label: Variant
     match:
       type: call
+    vertexes:
+      ....
 
 This will match any message that has the value "call" under the `type` key:
 
@@ -119,7 +122,7 @@ In the absence of a `match` directive, Protograph will attempt to parse the file
 * from.somewhere.Variant.json --> Variant
 * a.topic.of.streaming.Biosample --> Biosample
 
-### using the `--label` flag
+### using the --label flag
 
 If all of these fail you can also supply the label Protograph will use to interpret the incoming messages with the `--label` flag on invocation. This will indiscriminately apply this label to all incoming messages, unless the messages match an existing `match` clause, in which case it will just use that directive.
 
