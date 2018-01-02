@@ -357,7 +357,7 @@ Output:
      orb: "99919",
      ....}
 
-Not what we wanted. We can edit the `protograph.yaml` to give the `orb` field its proper type:
+Not what we wanted (`orb` is output as a string). We can edit the `protograph.yaml` to give the `orb` field its proper type:
 
     ....
     gid: "orb:{{name}}"
