@@ -8,9 +8,9 @@ Transform a stream of messages into a graph
 
 Protograph is a protocol for transforming messages from any given schema into a set of graph vertexes and edges. 
 
-To do this, you compose a `protograph.yml` describing how to create vertexes and edges given a message of a variety of shapes (called _labels_ in Protograph).
+To do this, you compose a `protograph.yaml` describing how to create vertexes and edges given a message of a variety of shapes (called _labels_ in Protograph).
 
-Given a well-constructed `protograph.yml`, input for Protograph is a stream of messages described in a [Protocol Buffers schema](https://developers.google.com/protocol-buffers/), and the output is a list of vertexes and edges, in a schema of their own.
+Given a well-constructed `protograph.yaml`, input for Protograph is a stream of messages described in a [Protocol Buffers schema](https://developers.google.com/protocol-buffers/), and the output is a list of vertexes and edges, in a schema of their own.
 
 ## protograph describes a property graph
 
@@ -25,7 +25,7 @@ A vertex contains three keys:
 
 * **label** (a string declaring the type of vertex)
 * **gid** (a globally unique identifier constructed from the data contained in the message
-* **properties** (containing all of the other data)
+* **data** (containing all of the other data)
 
 An edge has two terminals, a `from` and `to`, each with their own labels:
 
@@ -34,7 +34,7 @@ An edge has two terminals, a `from` and `to`, each with their own labels:
 * **label** (the label of the edge itself).
 * **from** (the gid of the _from_ vertex for the edge)
 * **to** (the gid of the _to_ vertex for the edge)
-* **properties** (once again, the rest of the data is here).
+* **data** (once again, the rest of the data is here).
 
 ## A basic example
 
@@ -45,14 +45,17 @@ An edge has two terminals, a `from` and `to`, each with their own labels:
      "start": 10521380,
      "end": 10521380,
      "referenceBases": "A",
-     "alternateBases": ["-"]}
+     "alternateBases": ["-"],
+     "type": "call"}
 
-#### protograph.yml representing the transformation
+#### protograph.yaml representing the transformation
 
     - label: Variant
-      gid: "variant:{{referenceName}}:{{start}}:{{end}}:{{referenceBases}}:{{alternateBases}}"
+      match:
+        type: call
       vertexes:
         - label: Variant
+          gid: "variant:{{referenceName}}:{{start}}:{{end}}:{{referenceBases}}:{{alternateBases}}"
           merge: true
           filter:
             - sample
@@ -67,7 +70,7 @@ An edge has two terminals, a `from` and `to`, each with their own labels:
 
     {"label": "Variant"
      "gid": "variant:1:10521380:10521380:A:-"
-     "properties": {
+     "data": {
        "referenceName": "1",
        "start": 10521380,
        "end": 10521380,
@@ -80,16 +83,45 @@ An edge has two terminals, a `from` and `to`, each with their own labels:
      "toLabel": "Biosample",
      "to": "biosample:CCLE:1321N1_CENTRAL_NERVOUS_SYSTEM",
      "gid": "(variant:1:10521380:10521380:A:-)--variantInBiosample->(biosample:CCLE:1321N1_CENTRAL_NERVOUS_SYSTEM)",
-     "properties": {}}
+     "data": {}}
 
-To see a larger example, check out the [`protograph.yml` that comes with this repository](https://github.com/bmeg/protograph/blob/master/resources/config/protograph.yml).
+To see a larger example, check out the [`protograph.yaml` that comes with this repository](https://github.com/bmeg/protograph/blob/master/resources/config/protograph.yaml).
 
 ## protograph works with typed messages
 
-Protograph directives are partitioned by type. When creating a protobuffer schema you declare a series of message types, and in `protograph.yml` you refer to these type names when declaring how each message will be processed. This lives under the `label` key:
+Protograph directives are partitioned by type. When creating a protobuffer schema you declare a series of message types, and in `protograph.yaml` you refer to these type names when declaring how each message will be processed. This lives under the `label` key:
 
     # a typed message
     - label: Variant
+
+Protograph has three ways of determining the label of the incoming message.
+
+### matching the label in the incoming message
+
+The most flexible way is to determine the label from the incoming message. To do this, before the `vertexes` or `edges` entry you can add a `match` entry with a key and value (or multiple keys and values). If one of these matches the incoming message, this protograph entry will be used.
+
+In the above example we had this section:
+
+    match:
+      type: call
+
+This will match any message that has the value "call" under the `type` key:
+
+    {...,
+     type: call,
+     start: 18232189,
+     ...}
+
+### matching the file/topic name
+
+In the absence of a `match` directive, Protograph will attempt to parse the filename or topic name. Here are some possible parsings:
+
+* from.somewhere.Variant.json --> Variant
+* a.topic.of.streaming.Biosample --> Biosample
+
+### using the `--label` flag
+
+If all of these fail you can also supply the label Protograph will use to interpret the incoming messages with the `--label` flag on invocation. This will indiscriminately apply this label to all incoming messages, unless the messages match an existing `match` clause, in which case it will just use that directive.
 
 ## each message type has a gid
 
@@ -168,7 +200,7 @@ There is a protobuffer schema for Protograph defined here: [Protograph schema](h
 
 # how to write protograph
 
-The overall structure of a `protograph.yml` is a list of transforms indexed by label:
+The overall structure of a `protograph.yaml` is a list of transforms indexed by label:
 
     - label: Variant
       ....
@@ -195,7 +227,7 @@ There are many commonalities between creating vertexes and edges, but minor diff
 
 * **label** (a string declaring the type of vertex)
 * **gid** (a globally unique identifier constructed from the data contained in the message
-* **properties** (containing all of the other data)
+* **data** (containing all of the other data)
 
 An edge has six keys: two terminals, a `from` and `to`, each with their own labels:
 
@@ -204,9 +236,9 @@ An edge has six keys: two terminals, a `from` and `to`, each with their own labe
 * **label** (the label of the edge itself).
 * **from** (the gid of the _from_ vertex for the edge)
 * **to** (the gid of the _to_ vertex for the edge)
-* **properties** (once again, the rest of the data is here).
+* **data** (once again, the rest of the data is here).
 
-As you can see, both have a `label` and `properties`, but the vertex also defines a unique `gid` while the edge specifies the vertexes it is connected to through `from` and `to`, and the labels of those vertexes with `fromLabel` and `toLabel`.
+As you can see, both have a `label` and `data`, but the vertex also defines a unique `gid` while the edge specifies the vertexes it is connected to through `from` and `to`, and the labels of those vertexes with `fromLabel` and `toLabel`.
 
 Each of these fields is constructed from a template as described in the section above `protograph fields are constructed using selmer templates`. Therefore, a vertex transform may look like this:
 
@@ -214,12 +246,12 @@ Each of these fields is constructed from a template as described in the section 
       vertexes:
         - label: Mutation
           gid: "variant:{{referenceName}}:{{start}}:{{end}}:{{referenceBases}}:{{alternateBases}}"
-          properties:
+          data:
             alternateBases: "{{alternateBases|join:,}}"
 
 ### merge/filter
 
-Sometimes you want all (or most) of the fields present in the input message to appear in the output message, and you don't want to make an entry under `properties` for each one (or maybe you don't even know what all of them are beforehand). This is where `merge` comes in:
+Sometimes you want all (or most) of the fields present in the input message to appear in the output message, and you don't want to make an entry under `data` for each one (or maybe you don't even know what all of them are beforehand). This is where `merge` comes in:
 
     - label: Variant
       gid: "variant:{{referenceName}}:{{start}}:{{end}}:{{referenceBases}}:{{alternateBases}}"
@@ -293,9 +325,9 @@ Either way, start by downloading the [latest release](https://github.com/bmeg/pr
 
 ## protograph transform with files
 
-To run Protograph on a directory of input files, use the `--input` and `--output` options, along with the path to your `protograph.yml` under `--protograph`:
+To run Protograph on a directory of input files, use the `--input` and `--output` options, along with the path to your `protograph.yaml` under `--protograph`:
 
-    java -jar protograph.jar --protograph path/to/protograph.yml --input /path/to/input/messages.Label.json --output /path/to/output/with/file.prefix
+    java -jar protograph.jar --protograph path/to/protograph.yaml --input /path/to/input/messages.Label.json --output /path/to/output/with/file.prefix
 
 Input files must follow a naming convention where the key into the Protograph description is the penultimate element in the file path, so something like
 
@@ -314,13 +346,13 @@ depending on what you passed to `--output`.
 
 To run Protograph in Kafka mode you must have access to a Kafka node with some topics to import. 
 
-    java -jar protograph.jar --protograph path/to/protograph.yml --topic "topic1 topic2 topic3"
+    java -jar protograph.jar --protograph path/to/protograph.yaml --topic "topic1 topic2 topic3"
 
 This will by default output to the Kafka topics `protograph.Vertex` and `protograph.Edge`. To change the prefix for these topics pass in something under the `--prefix` key:
 
     # this will output to the topics inspired.project.Vertex and inspired.project.Edge
-    java -jar protograph.jar --protograph path/to/protograph.yml --topic "topic1 topic2 topic3" --prefix inspired.project
+    java -jar protograph.jar --protograph path/to/protograph.yaml --topic "topic1 topic2 topic3" --prefix inspired.project
 
 If you need to change the kafka host, pass it in under `--kafka`:
 
-    java -jar protograph.jar --protograph path/to/protograph.yml --kafka 10.96.11.82:9092 --topic "topic1 topic2 topic3"
+    java -jar protograph.jar --protograph path/to/protograph.yaml --kafka 10.96.11.82:9092 --topic "topic1 topic2 topic3"
