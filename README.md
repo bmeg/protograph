@@ -94,38 +94,6 @@ Protograph directives are partitioned by type. When creating a protobuffer schem
     # a typed message
     - label: Variant
 
-Protograph has three ways of determining the label of the incoming message.
-
-### matching the label in the incoming message
-
-The most flexible way is to determine the label from the incoming message. To do this, before the `vertexes` or `edges` entry you can add a `match` entry with a key and value (or multiple keys and values). If one of these matches the incoming message, this protograph entry will be used.
-
-In the above example we had this section:
-
-    label: Variant
-    match:
-      type: call
-    vertexes:
-      ....
-
-This will match any message that has the value "call" under the `type` key:
-
-    {...,
-     type: call,
-     start: 18232189,
-     ...}
-
-### matching the file/topic name
-
-In the absence of a `match` directive, Protograph will attempt to parse the filename or topic name. Here are some possible parsings:
-
-* from.somewhere.Variant.json --> Variant
-* a.topic.of.streaming.Biosample --> Biosample
-
-### using the --label flag
-
-If all of these fail you can also supply the label Protograph will use to interpret the incoming messages with the `--label` flag on invocation. This will indiscriminately apply this label to all incoming messages, unless the messages match an existing `match` clause, in which case it will just use that directive.
-
 ## each message type has a gid
 
 Gids are one of the key concepts of Protograph. A `gid` (global identifier) refers to an identifier that can be entirely constructed *from the message itself*. Each message type declares a gid template that accepts the message as an argument and constructs the gid from values found within.
@@ -214,9 +182,43 @@ The overall structure of a `protograph.yaml` is a list of transforms indexed by 
     - label: Biosample
       ....
 
-Everything living under one of these labels pertains to input messages with the given label. You can provide this label in two ways. One of which is to put the label under the `_label` key in your input messages (making them self-describing). The other is to use an input stream with a certain naming convention (the label is the last element in the name of the stream). In the latter case all messages in the stream are assumed to have the same label.
+## determining the label of the message
 
 When messages are processed, the first thing that happens is the label of the incoming message is matched to one of the protograph transforms. Once a label is chosen, each transform under that label is run on the given message.
+
+Protograph has three ways of determining the label of the incoming message.
+
+### matching the label in the incoming message
+
+The most flexible way is to determine the label from the incoming message. To do this, before the `vertexes` or `edges` entry you can add a `match` entry with a key and value (or multiple keys and values). If one of these matches the incoming message, this protograph entry will be used.
+
+In the above example we had this section:
+
+    label: Variant
+    match:
+      type: call
+    vertexes:
+      ....
+
+This will match any message that has the value "call" under the `type` key:
+
+    {...,
+     type: call,
+     start: 18232189,
+     ...}
+
+### matching the file/topic name
+
+In the absence of a `match` directive, Protograph will attempt to parse the filename or topic name. Here are some possible parsings:
+
+* from.somewhere.Variant.json --> Variant
+* a.topic.of.streaming.Biosample --> Biosample
+
+### using the --label flag
+
+If all of these fail you can also supply the label Protograph will use to interpret the incoming messages with the `--label` flag on invocation. This will indiscriminately apply this label to all incoming messages, unless the messages match an existing `match` clause, in which case it will just use that directive.
+
+## specifying how vertexes and edges are generated from the message
 
 Transforms are of two types: transforms that produce vertexes and transforms that produce edges. These live under the `vertexes` and `edges` keys respectively.
 
@@ -246,6 +248,8 @@ As you can see, both have a `label` and `data`, but the vertex also defines a un
 Each of these fields is constructed from a template as described in the section above `protograph fields are constructed using selmer templates`. Therefore, a vertex transform may look like this:
 
     - label: Variant
+      match:
+        type: call
       vertexes:
         - label: Mutation
           gid: "variant:{{referenceName}}:{{start}}:{{end}}:{{referenceBases}}:{{alternateBases}}"
