@@ -206,7 +206,7 @@
      message)
     {:vertexes [] :edges []}))
 
-(defn mapcat
+(defn map-cat
   [f s]
   (reduce into [] (map f s)))
 
@@ -214,8 +214,8 @@
   [protograph {:keys [vertexes edges state inner] :as directive} message]
   (let [down (mapv #(process-inner-index protograph state % message) inner)
         down (merge-outcomes down)
-        v (mapcat #(process-vertex (assoc % :state state) message) vertexes)
-        e (mapcat #(process-edge (assoc % :state state) message) edges)
+        v (map-cat #(process-vertex (assoc % :state state) message) vertexes)
+        e (map-cat #(process-edge (assoc % :state state) message) edges)
         v (into (:vertexes down) v)
         e (into (:edges down) e)]
     {:vertexes v
