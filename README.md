@@ -432,3 +432,17 @@ This will by default output to the Kafka topics `protograph.Vertex` and `protogr
 If you need to change the kafka host, pass it in under `--kafka`:
 
     java -jar protograph.jar --protograph path/to/protograph.yaml --kafka 10.96.11.82:9092 --topic "topic1 topic2 topic3"
+
+# generating dot files
+
+You can also use protograph to generate a dot file representing the connections between all the node types. To do so, run the following command:
+
+    java -cp protograph.jar clojure.main -m protograph.dot --protograph path/to/protograph.yaml --output path/to/output.dot
+
+Then you can generate a png representing the graph using the following command (assuming you have `graphviz` installed):
+
+    dot path/to/output.dot -Tpng -oprotograph.png
+
+Here is an example using the protograph for `BMEG`:
+
+![DOT](https://github.com/bmeg/protograph/blob/master/resources/public/protograph.png)
