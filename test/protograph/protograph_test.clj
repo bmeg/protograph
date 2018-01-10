@@ -43,20 +43,16 @@
       :merge true}]}})
 
 (def yellow
-  {:_label "yellow.Yellow"
-   :id "obor"
+  {:id "obor"
    :info {:base "c" :under "x"}
    :over 33333
    :greens
    [{:id "thing"
      :orange {:flail 18181}}]})
 
-(def bmeg
-  (template/load-protograph "resources/config/protograph.yml"))
-
 (deftest template-test
   (testing "protograph template output"
-    (let [out (template/process-message test-protograph yellow)]
+    (let [out (template/process-message test-protograph yellow "yellow.Yellow")]
       (log/info out))))
 
 (deftest path-test
@@ -72,4 +68,5 @@
       (log/info "edges" (:edge outcome)))))
 
 (deftest bmeg-test
-  (testing ""))
+  (testing "load protograph"
+    (template/load-protograph "resources/config/protograph.yml")))

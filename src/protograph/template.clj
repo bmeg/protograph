@@ -18,7 +18,7 @@
 (defn convert-int
   [n]
   (try
-    (Integer/parseInt n)
+    (Long/parseLong n)
     (catch Exception e 0)))
 
 (defn convert-float
