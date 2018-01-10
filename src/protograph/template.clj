@@ -222,9 +222,8 @@
      :edges e}))
 
 (defn process-message
-  [{:keys [state] :as protograph} message]
-  (let [label (get message :_label)
-        directive (get protograph label)]
+  [{:keys [state] :as protograph} message label]
+  (let [directive (get protograph label)]
     (process-directive protograph (assoc directive :state state) message)))
 
 (defn template-or
@@ -329,7 +328,8 @@
                   label (or (match-labels protograph data) label)
                   out (process-message
                        (assoc protograph :state state)
-                       (assoc data :_label label))]
+                       data
+                       label)]
               (write out))
             (catch Exception e
               (.printStackTrace e)
