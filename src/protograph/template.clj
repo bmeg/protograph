@@ -5,6 +5,8 @@
    [clojure.java.io :as io]
    [clojure.tools.cli :as cli]
    [taoensso.timbre :as log]
+   [antlers.parser :as aparser]
+   [antlers.core :as antlers]
    [selmer.filters :as filters]
    [selmer.parser :as template]
    [selmer.filter-parser :as parser]
@@ -28,12 +30,9 @@
     (catch Exception e 0.0)))
 
 (def defaults
-  {})
-
-(defn evaluate-template
-  [template context]
-  (let [context (merge defaults context)]
-    (template/render template context)))
+  {:first first
+   :last last
+   :nth nth})
 
 (defn map-values
   [f m]
@@ -45,6 +44,11 @@
 
 (def dot #"\.")
 
+(defn evaluate-template
+  [template context]
+  (let [context (merge defaults context)]
+    (template/render template context)))
+
 (defn evaluate-map
   [m context]
   (into
@@ -52,6 +56,27 @@
    (map
     (fn [[k template]]
       (let [press (evaluate-template template context)
+            [key type] (string/split (name k) dot)
+            outcome (condp = type
+                      "int" (convert-int press)
+                      "float" (convert-float press)
+                      press)]
+        [(keyword key) outcome]))
+    m)))
+
+(defn render-template
+  [label key template context]
+  (let [template-key (str label ":" key)]
+    (aparser/register-conditionally template-key template)
+    (antlers/render-file template-key context)))
+
+(defn render-map
+  [label m context]
+  (into
+   {}
+   (map
+    (fn [[k template]]
+      (let [press (render-template label k template context)
             [key type] (string/split (name k) dot)
             outcome (condp = type
                       "int" (convert-int press)
@@ -73,62 +98,76 @@
 (def vertex-fields
   {})
 
-(defn lookup-partials
-  [state edge]
-  (cond
-    (:to edge) (:sources state)
-    (:from edge) (:terminals state)
-    :else (:vertexes state)))
+;; (defn lookup-partials
+;;   [state edge]
+;;   (cond
+;;     (:to edge) (:sources state)
+;;     (:from edge) (:terminals state)
+;;     :else (:vertexes state)))
 
-(defn store-partials
-  [state edge]
-  (cond
-    (:to edge) (:terminals state)
-    (:from edge) (:sources state)
-    :else (:vertexes state)))
+;; (defn store-partials
+;;   [state edge]
+;;   (cond
+;;     (:to edge) (:terminals state)
+;;     (:from edge) (:sources state)
+;;     :else (:vertexes state)))
 
-(defn merge-edges
-  [a b]
-  (let [data (merge (:data a) (:data b))
-        top (merge a b)
-        onto (merge top (evaluate-map edge-fields top))]
-    (assoc onto :data data)))
+;; (defn merge-edges
+;;   [a b]
+;;   (let [data (merge (:data a) (:data b))
+;;         top (merge a b)
+;;         onto (merge top (evaluate-map edge-fields top))]
+;;     (assoc onto :data data)))
 
 (defn process-entity
   [top-level
    fields
-   {:keys
-    [state
-     data
-     splice
-     filter
-     lookup]
+   {:keys [state label data splice filter lookup]
     :as directive}
    entity]
   (let [core (select-keys directive top-level)
-        top (evaluate-map core entity)
-        data (evaluate-map data entity)
+        top (render-map label core entity)
+        data (render-map label data entity)
         out (splice-maps data splice entity)
         merged (if (:merge directive)
                  (merge entity out)
                  out)
         slim (apply dissoc merged (map keyword (concat splice filter [:_index :_self])))
         onto (assoc top :data slim)]
-    (if lookup
-      (let [look (evaluate-template lookup entity)
-            partials (lookup-partials state onto)
-            store (store-partials state onto)]
-        (if-let [found (get @partials look)]
-          (do
-            ;; (log/info (:_label entity) look)
-            ;; (pprint/pprint found)
-            (mapv #(merge-edges % onto) found))
-          (do
-            ;; (log/info (:_label entity) look)
-            ;; (pprint/pprint onto)
-            (swap! store update look conj onto)
-            [])))
-      [(merge (evaluate-map fields onto) onto)])))
+    [(merge (render-map label fields onto) onto)]))
+
+;; (defn process-entity
+;;   [top-level
+;;    fields
+;;    {:keys [state label data splice filter lookup]
+;;     :as directive}
+;;    entity]
+;;   (let [core (select-keys directive top-level)
+;;         top (evaluate-map core entity)
+;;         data (evaluate-map data entity)
+;;         out (splice-maps data splice entity)
+;;         merged (if (:merge directive)
+;;                  (merge entity out)
+;;                  out)
+;;         slim (apply dissoc merged (map keyword (concat splice filter [:_index :_self])))
+;;         onto (assoc top :data slim)]
+;;     [(merge (evaluate-map fields onto) onto)]))
+
+    ;; (if lookup
+    ;;   (let [look (evaluate-template lookup entity)
+    ;;         partials (lookup-partials state onto)
+    ;;         store (store-partials state onto)]
+    ;;     (if-let [found (get @partials look)]
+    ;;       (do
+    ;;         ;; (log/info (:_label entity) look)
+    ;;         ;; (pprint/pprint found)
+    ;;         (mapv #(merge-edges % onto) found))
+    ;;       (do
+    ;;         ;; (log/info (:_label entity) look)
+    ;;         ;; (pprint/pprint onto)
+    ;;         (swap! store update look conj onto)
+    ;;         [])))
+    ;;   [(merge (evaluate-map fields onto) onto)])
 
 (defn evaluate-body
   [template context]
@@ -289,11 +328,11 @@
      :from (set-group :from edges)
      :to (set-group :to edges)}))
 
-(defn partial-state
-  []
-  {:vertexes (atom {})
-   :sources (atom {})
-   :terminals (atom {})})
+;; (defn partial-state
+;;   []
+;;   {:vertexes (atom {})
+;;    :sources (atom {})
+;;    :terminals (atom {})})
 
 (defn match-label
   [match message]
@@ -316,7 +355,7 @@
 
 (defn transform-dir-write
   [protograph write {:keys [input label]}]
-  (let [state (partial-state)
+  (let [state {} ;; (partial-state)
         labels (map name (keys protograph))]
     (doseq [file (kafka/dir->files input)]
       (log/info file)
