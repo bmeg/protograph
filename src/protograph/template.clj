@@ -44,11 +44,6 @@
    "first" first
    "last" last})
 
-(defn evaluate-template
-  [template context]
-  (let [context (merge defaults context)]
-    (template context)))
-
 (defn map-values
   [f m]
   (into
@@ -59,6 +54,11 @@
 
 (def dot #"\.")
 
+(defn evaluate-template
+  [template context]
+  (let [context (merge defaults context)]
+    (template/render context)))
+
 (defn evaluate-map
   [m context]
   (into
@@ -68,6 +68,29 @@
       (let [press
             (try
               (evaluate-template template context)
+              (catch Exception e (log/info "failed" k template context)))
+            [key type] (string/split (name k) dot)
+            outcome (condp = type
+                      "int" (convert-int press)
+                      "float" (convert-float press)
+                      press)]
+        [key outcome]))
+    m)))
+
+(defn render-template
+  [template context]
+  (let [context (merge defaults context)]
+    (template context)))
+
+(defn render-map
+  [m context]
+  (into
+   {}
+   (map
+    (fn [[k template]]
+      (let [press
+            (try
+              (render-template template context)
               (catch Exception e (log/info "failed" k template context)))
             [key type] (string/split (name k) dot)
             outcome (condp = type
@@ -108,7 +131,7 @@
   [a b]
   (let [data (merge (:data a) (:data b))
         top (merge a b)
-        onto (merge top (evaluate-map edge-fields top))]
+        onto (merge top (render-map edge-fields top))]
     (assoc onto :data data)))
 
 (defn process-entity
@@ -123,8 +146,8 @@
     :as directive}
    entity]
   (let [core (select-keys directive top-level)
-        top (evaluate-map core entity)
-        data (evaluate-map data entity)
+        top (render-map core entity)
+        data (render-map data entity)
         out (splice-maps data splice entity)
         merged (if (:merge directive)
                  (merge entity out)
@@ -132,7 +155,7 @@
         slim (apply dissoc merged (concat splice filter ["_index" "_self"]))
         onto (assoc top "data" slim)]
     (if lookup
-      (let [look (evaluate-template lookup entity)
+      (let [look (render-template lookup entity)
             partials (lookup-partials state onto)
             store (store-partials state onto)]
         (if-let [found (get @partials look)]
@@ -145,7 +168,7 @@
             ;; (pprint/pprint onto)
             (swap! store update look conj onto)
             [])))
-      [(merge (evaluate-map fields onto) onto)])))
+      [(merge (render-map fields onto) onto)])))
 
 (defn evaluate-body
   [template context]
