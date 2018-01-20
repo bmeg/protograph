@@ -10,7 +10,8 @@
    [selmer.filter-parser :as parser]
    [cheshire.core :as json]
    [yaml.core :as yaml]
-   [protograph.kafka :as kafka])
+   [protograph.kafka :as kafka]
+   [protograph.compile :as compile])
   (:import
    [java.io StringWriter])
   (:gen-class))
@@ -27,13 +28,26 @@
     (Double/parseDouble r)
     (catch Exception e 0.0)))
 
+(defn template-or
+  [m & is]
+  (let [out (mapv (partial get m) is)]
+    (first
+     (drop-while empty? out))))
+
 (def defaults
-  {})
+  {"each" (fn [s k] (mapv #(get % k) s))
+   "flatten" flatten
+   "split" (fn [s d] (string/split s (re-pattern d)))
+   "or" template-or
+   "float" convert-float
+   "name" name
+   "first" first
+   "last" last})
 
 (defn evaluate-template
   [template context]
   (let [context (merge defaults context)]
-    (template/render template context)))
+    (template context)))
 
 (defn map-values
   [f m]
@@ -51,24 +65,27 @@
    {}
    (map
     (fn [[k template]]
-      (let [press (evaluate-template template context)
+      (let [press
+            (try
+              (evaluate-template template context)
+              (catch Exception e (log/info "failed" k template context)))
             [key type] (string/split (name k) dot)
             outcome (condp = type
                       "int" (convert-int press)
                       "float" (convert-float press)
                       press)]
-        [(keyword key) outcome]))
+        [key outcome]))
     m)))
 
 (defn splice-maps
   [before splices context]
   (reduce
    (fn [after splice]
-     (merge after (get context (keyword splice))))
+     (merge after (get context splice)))
    before splices))
 
 (def edge-fields
-  {:gid "({{from}})--{{label}}->({{to}})"})
+  {:gid (compile/compile-top "({{from}})--{{label}}->({{to}})")})
 
 (def vertex-fields
   {})
@@ -112,8 +129,8 @@
         merged (if (:merge directive)
                  (merge entity out)
                  out)
-        slim (apply dissoc merged (map keyword (concat splice filter [:_index :_self])))
-        onto (assoc top :data slim)]
+        slim (apply dissoc merged (concat splice filter ["_index" "_self"]))
+        onto (assoc top "data" slim)]
     (if lookup
       (let [look (evaluate-template lookup entity)
             partials (lookup-partials state onto)
@@ -148,11 +165,11 @@
 (defn process-index
   [process post {:keys [index] :as directive} message]
   (if (empty? index)
-    (process directive (assoc message :_self message))
+    (process directive (assoc message "_self" message))
     (let [series (evaluate-body index message)
           after (mapv
                  (fn [in]
-                   (process directive (assoc message :_index in)))
+                   (process directive (assoc message "_index" in)))
                  series)]
       (post after))))
 
@@ -161,7 +178,7 @@
   (process-index
    (partial
     process-entity
-    [:fromLabel :from :label :toLabel :to]
+    [:gid :fromLabel :from :label :toLabel :to]
     edge-fields)
    (partial reduce into [])
    protograph
@@ -177,13 +194,6 @@
    (partial reduce into [])
    protograph
    message))
-
-  ;; (partial
-  ;;  process-index
-  ;;  (partial
-  ;;   process-entity
-  ;;   [:label :gid]
-  ;;   vertex-fields))
 
 (declare process-directive)
 
@@ -226,26 +236,65 @@
   (let [directive (get protograph label)]
     (process-directive protograph (assoc directive :state state) message)))
 
-(defn template-or
-  [m & is]
-  (let [out (mapv #(get m (keyword %)) is)]
-    (first
-     (drop-while empty? out))))
-
-(filters/add-filter! :each (fn [s k] (mapv #(get % (keyword k)) s)))
+(filters/add-filter! :each (fn [s k] (mapv #(get % k) s)))
 (filters/add-filter! :flatten flatten)
 (filters/add-filter! :split (fn [s d] (string/split s (re-pattern d))))
 (filters/add-filter! :or template-or)
 (filters/add-filter! :float convert-float)
 (filters/add-filter! :name name)
+(filters/add-filter! :first first)
+(filters/add-filter! :last last)
+
+(defn compile-map
+  [m]
+  (into
+   {}
+   (map
+    (fn [[k v]]
+      [k (compile/compile-top v)])
+    m)))
+
+(defn compile-edge
+  [edge]
+  (-> edge
+      (update :fromLabel compile/compile-top)
+      (update :label compile/compile-top)
+      (update :toLabel compile/compile-top)
+      (update :from compile/compile-top)
+      (update :to compile/compile-top)
+      (update :data compile-map)))
+
+(defn compile-vertex
+  [vertex]
+  (-> vertex
+      (update :label compile/compile-top)
+      (update :gid compile/compile-top)
+      (update :data compile-map)))
+
+(defn compile-inner
+  [inner]
+  (-> inner
+      (update :path compile/compile-top)))
+
+(defn compile-entry
+  [entry]
+  (-> entry
+      (update :inner (partial map compile-inner))
+      (update :vertexes (partial map compile-vertex))
+      (update :edges (partial map compile-edge))))
+
+(defn compile-protograph
+  [entries]
+  (map compile-entry entries))
 
 (defn load-protograph
   [path]
-  (let [raw (yaml/parse-string (slurp path))]
+  (let [raw (yaml/parse-string (slurp path))
+        compiled (compile-protograph raw)]
     (reduce
      (fn [protograph spec]
        (assoc protograph (:label spec) (select-keys spec [:label :match :vertexes :edges :inner])))
-     {} raw)))
+     {} compiled)))
 
 (defn protograph->vertexes
   [protograph]
@@ -324,7 +373,7 @@
             lines (line-seq (io/reader file))]
         (doseq [line lines]
           (try
-            (let [data (json/parse-string line true)
+            (let [data (json/parse-string line)
                   label (or (match-labels protograph data) label)
                   out (process-message
                        (assoc protograph :state state)
@@ -334,7 +383,6 @@
             (catch Exception e
               (.printStackTrace e)
               (log/info e)
-              (log/info line)
               {:vertexes [] :edges []})))))))
 
 (defn write-output

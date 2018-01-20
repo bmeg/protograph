@@ -32,14 +32,17 @@
         functions (map compile-switch functions)]
     [accessor functions]
     (fn [m]
-      (apply comp (reverse (map (fn [f] (partial f m)) functions))))))
+      (let [applied (map (fn [f] (partial f m)) functions)
+            composite (apply comp (reverse (cons accessor applied)))]
+        (composite m)))))
 
 (defn compile-accessor
   [terms]
   (let [indexes (filter (fn [i] (= :index (first i))) terms)
         indexes (map compile-switch indexes)]
     [:get-in :m indexes]
-    (fn [m] (get-in m indexes))))
+    (fn [m]
+      (get-in m indexes))))
 
 (defn compile-function
   [terms]
@@ -66,7 +69,7 @@
 
 (defn apply-context
   [m f]
-  (if (fn? f)
+  (if (ifn? f)
     (f m)
     f))
 
