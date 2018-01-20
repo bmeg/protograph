@@ -65,16 +65,13 @@
    {}
    (map
     (fn [[k template]]
-      (let [press
-            (try
-              (evaluate-template template context)
-              (catch Exception e (log/info "failed" k template context)))
+      (let [press (evaluate-template template context)
             [key type] (string/split (name k) dot)
             outcome (condp = type
                       "int" (convert-int press)
                       "float" (convert-float press)
                       press)]
-        [key outcome]))
+        [(keyword key) outcome]))
     m)))
 
 (defn render-template
