@@ -57,7 +57,7 @@
 (defn evaluate-template
   [template context]
   (let [context (merge defaults context)]
-    (template/render context)))
+    (template/render template context)))
 
 (defn evaluate-map
   [m context]
