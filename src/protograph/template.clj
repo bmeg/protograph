@@ -307,14 +307,23 @@
   [entries]
   (map compile-entry entries))
 
-(defn load-protograph
+(defn entries->map
+  [entries]
+  (reduce
+   (fn [protograph spec]
+     (assoc protograph (:label spec) (select-keys spec [:label :match :vertexes :edges :inner])))
+   {} entries))
+
+(defn load-compiled-protograph
   [path]
   (let [raw (yaml/parse-string (slurp path))
         compiled (compile-protograph raw)]
-    (reduce
-     (fn [protograph spec]
-       (assoc protograph (:label spec) (select-keys spec [:label :match :vertexes :edges :inner])))
-     {} compiled)))
+    (entries->map compiled)))
+
+(defn load-protograph
+  [path]
+  (let [raw (yaml/parse-string (slurp path))]
+    (entries->map raw)))
 
 (defn protograph->vertexes
   [protograph]
@@ -456,7 +465,7 @@
         summary (:summary shell)]
     (try
       (let [env (:options shell)
-            protograph (load-protograph (:protograph env))
+            protograph (load-compiled-protograph (:protograph env))
             output (:output env)
             writer (converge-writer output)]
         (transform-dir-write protograph (:write writer) env)
