@@ -25,6 +25,13 @@
   [terms]
   (map compile-switch terms))
 
+(defn compile-index
+  [terms]
+  (let [index (apply str terms)]
+    (try
+      (Long/parseLong index)
+      (catch Exception e index))))
+
 (defn compile-expression
   [terms]
   (let [accessor (compile-switch (first terms))
@@ -51,8 +58,9 @@
         arguments (map compile-switch arguments)]
     [index arguments]
     (fn [m x]
-      (let [f (get m index)]
-        (apply f (cons x arguments))))))
+      (if-let [f (get m index)]
+        (apply f (cons x arguments))
+        (println (str "missing function " index))))))
 
 (defn compile-switch
   [[key & terms]]
@@ -63,7 +71,7 @@
     :expression (compile-expression terms)
     :accessor (compile-accessor terms)
     :function (compile-function terms)
-    :index (apply str terms)
+    :index (compile-index terms)
     :argument (apply str terms)
     terms))
 
@@ -82,10 +90,12 @@
 
 (defn compile-top
   [field]
-  (let [parse (field-parser field)
-        compiled (compile-switch parse)]
-    (fn [m]
-      (let [applied (map (partial apply-context m) compiled)]
-        (if (expression? applied)
-          (second applied))
-        (apply str applied)))))
+  (if (empty? field)
+    (fn [m])
+    (let [parse (field-parser field)
+          compiled (compile-switch parse)]
+      (fn [m]
+        (let [applied (map (partial apply-context m) compiled)]
+          (if (expression? applied)
+            (second applied)
+            (apply str applied)))))))

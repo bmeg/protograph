@@ -5,9 +5,6 @@
    [clojure.java.io :as io]
    [clojure.tools.cli :as cli]
    [taoensso.timbre :as log]
-   [selmer.filters :as filters]
-   [selmer.parser :as template]
-   [selmer.filter-parser :as parser]
    [cheshire.core :as json]
    [yaml.core :as yaml]
    [protograph.kafka :as kafka]
@@ -58,8 +55,9 @@
 
 (defn evaluate-template
   [template context]
-  (let [context (merge defaults context)]
-    (template/render template context)))
+  (let [context (merge defaults context)
+        f (compile/compile-top template)]
+    (f context)))
 
 (defn evaluate-map
   [m context]
@@ -115,27 +113,6 @@
 (def vertex-fields
   {})
 
-(defn lookup-partials
-  [state edge]
-  (cond
-    (:to edge) (:sources state)
-    (:from edge) (:terminals state)
-    :else (:vertexes state)))
-
-(defn store-partials
-  [state edge]
-  (cond
-    (:to edge) (:terminals state)
-    (:from edge) (:sources state)
-    :else (:vertexes state)))
-
-(defn merge-edges
-  [a b]
-  (let [data (merge (:data a) (:data b))
-        top (merge a b)
-        onto (merge top (render-map edge-fields top))]
-    (assoc onto :data data)))
-
 (defn process-entity
   [top-level
    fields
@@ -156,25 +133,7 @@
                  out)
         slim (apply dissoc merged (concat splice filter ["_index" "_self"]))
         onto (assoc top "data" slim)]
-    (if lookup
-      (let [look (render-template lookup entity)
-            partials (lookup-partials state onto)
-            store (store-partials state onto)]
-        (if-let [found (get @partials look)]
-          (do
-            ;; (log/info (:_label entity) look)
-            ;; (pprint/pprint found)
-            (mapv #(merge-edges % onto) found))
-          (do
-            ;; (log/info (:_label entity) look)
-            ;; (pprint/pprint onto)
-            (swap! store update look conj onto)
-            [])))
-      [(merge (render-map fields onto) onto)])))
-
-(defn evaluate-body
-  [template context]
-  ((parser/compile-filter-body template false) context))
+    [(merge (render-map fields onto) onto)]))
 
 (defn merge-outcomes
   [outcomes]
@@ -188,15 +147,14 @@
    outcomes))
 
 (defn process-index
-  [process post {:keys [index] :as directive} message]
-  (if (empty? index)
-    (process directive (assoc message "_self" message))
-    (let [series (evaluate-body index message)
-          after (mapv
+  [process post {:keys [label index] :as directive} message]
+  (if-let [series (render-template index message)]
+    (let [after (mapv
                  (fn [in]
                    (process directive (assoc message "_index" in)))
                  series)]
-      (post after))))
+      (post after))
+    (process directive (assoc message "_self" message))))
 
 (defn process-edge
   [protograph message]
@@ -224,9 +182,8 @@
 
 (defn process-inner
   [protograph state {:keys [path label]} message]
-  (if (and path label)
-    (let [inner (evaluate-body path message)
-          directive (get protograph label)
+  (if-let [inner (render-template path message)]
+    (let [directive (get protograph label)
           directive (assoc directive :state state)]
       (process-directive protograph directive inner))
     []))
@@ -261,15 +218,6 @@
   (let [directive (get protograph label)]
     (process-directive protograph (assoc directive :state state) message)))
 
-(filters/add-filter! :each (fn [s k] (mapv #(get % k) s)))
-(filters/add-filter! :flatten flatten)
-(filters/add-filter! :split (fn [s d] (string/split s (re-pattern d))))
-(filters/add-filter! :or template-or)
-(filters/add-filter! :float convert-float)
-(filters/add-filter! :name name)
-(filters/add-filter! :first first)
-(filters/add-filter! :last last)
-
 (defn compile-map
   [m]
   (into
@@ -287,6 +235,7 @@
       (update :toLabel compile/compile-top)
       (update :from compile/compile-top)
       (update :to compile/compile-top)
+      (update :index compile/compile-top)
       (update :data compile-map)))
 
 (defn compile-vertex
@@ -294,11 +243,13 @@
   (-> vertex
       (update :label compile/compile-top)
       (update :gid compile/compile-top)
+      (update :index compile/compile-top)
       (update :data compile-map)))
 
 (defn compile-inner
   [inner]
   (-> inner
+      (update :index compile/compile-top)
       (update :path compile/compile-top)))
 
 (defn compile-entry
