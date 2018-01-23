@@ -9,7 +9,6 @@
                  [instaparse "1.4.8"]
                  [io.forward/yaml "1.0.6"]
                  [com.taoensso/timbre "4.8.0"]
-                 [selmer "1.10.8"]
                  [clojurewerkz/propertied "1.2.0"]
                  [org.apache.kafka/kafka_2.11 "0.10.0.1"]]
   :repositories [["sonatype snapshots"
