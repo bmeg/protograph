@@ -39,6 +39,8 @@
    "flatten" flatten
    "split" (fn [s d] (string/split s (re-pattern d)))
    "or" template-or
+   "sort" sort
+   "join" (fn [l d] (string/join d l))
    "float" convert-float
    "name" name
    "first" first
@@ -88,7 +90,10 @@
       (let [press
             (try
               (render-template template context)
-              (catch Exception e (log/info "failed" k template context)))
+              (catch Exception e
+                (do
+                  (log/info "failed" k template)
+                  (.printStackTrace e))))
             [key type] (string/split (name k) dot)
             outcome (condp = type
                       "int" (convert-int press)

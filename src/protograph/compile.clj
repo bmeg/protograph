@@ -3,7 +3,7 @@
    [clojure.string :as string]
    [instaparse.core :as parse]))
 
-(def parser-spec
+(def field-spec
   "field = constant (template constant)*
    constant = #'[^{}]'*
    template = '{{' expression '}}'
@@ -17,7 +17,7 @@
    pipe = '|'")
 
 (def field-parser
-  (parse/parser parser-spec))
+  (parse/parser field-spec))
 
 (declare compile-switch)
 
@@ -73,10 +73,19 @@
     (f m)
     f))
 
+(defn expression?
+  [compiled]
+  (and
+   (= 3 (count compiled))
+   (empty? (first compiled))
+   (empty? (last compiled))))
+
 (defn compile-top
   [field]
   (let [parse (field-parser field)
         compiled (compile-switch parse)]
     (fn [m]
       (let [applied (map (partial apply-context m) compiled)]
+        (if (expression? applied)
+          (second applied))
         (apply str applied)))))
