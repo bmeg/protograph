@@ -15,15 +15,19 @@
 
 (defn convert-int
   [n]
-  (try
-    (Long/parseLong n)
-    (catch Exception e 0)))
+  (if (string? n)
+    (try
+      (Long/parseLong n)
+      (catch Exception e 0))
+    n))
 
 (defn convert-float
   [r]
-  (try
-    (Double/parseDouble r)
-    (catch Exception e 0.0)))
+  (if (string? r)
+    (try
+      (Double/parseDouble r)
+      (catch Exception e 0.0))
+    r))
 
 (defn template-or
   [m & is]
