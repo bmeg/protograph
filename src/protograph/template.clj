@@ -152,12 +152,14 @@
 
 (defn process-index
   [process post {:keys [label index] :as directive} message]
-  (if-let [series (render-template index message)]
-    (let [after (mapv
-                 (fn [in]
-                   (process directive (assoc message "_index" in)))
-                 series)]
-      (post after))
+  (if index
+    (if-let [series (render-template index message)]
+      (let [after (mapv
+                   (fn [in]
+                     (process directive (assoc message "_index" in)))
+                   series)]
+        (log/info "series" series)
+        (post after)))
     (process directive (assoc message "_self" message))))
 
 (defn process-edge
@@ -231,6 +233,11 @@
       [k (compile/compile-top v)])
     m)))
 
+(defn compile?
+  [template]
+  (if template
+    (compile/compile-top template)))
+
 (defn compile-edge
   [edge]
   (-> edge
@@ -239,7 +246,7 @@
       (update :toLabel compile/compile-top)
       (update :from compile/compile-top)
       (update :to compile/compile-top)
-      (update :index compile/compile-top)
+      (update :index compile?)
       (update :data compile-map)))
 
 (defn compile-vertex
@@ -247,13 +254,13 @@
   (-> vertex
       (update :label compile/compile-top)
       (update :gid compile/compile-top)
-      (update :index compile/compile-top)
+      (update :index compile?)
       (update :data compile-map)))
 
 (defn compile-inner
   [inner]
   (-> inner
-      (update :index compile/compile-top)
+      (update :index compile?)
       (update :path compile/compile-top)))
 
 (defn compile-entry
