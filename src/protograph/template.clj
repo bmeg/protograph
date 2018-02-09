@@ -158,7 +158,6 @@
                    (fn [in]
                      (process directive (assoc message "_index" in)))
                    series)]
-        (log/info "series" series)
         (post after)))
     (process directive (assoc message "_self" message))))
 
