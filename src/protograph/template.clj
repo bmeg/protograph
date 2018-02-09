@@ -291,6 +291,10 @@
   (let [raw (yaml/parse-string (slurp path))]
     (entries->map raw)))
 
+(defn label-map
+  [labeled]
+  (into {} (map (juxt :label identity) labeled)))
+
 (defn protograph->vertexes
   [protograph]
   (reduce
@@ -327,9 +331,9 @@
 (defn graph-structure
   [protograph]
   (let [vertexes (protograph->vertexes protograph)
-        edges (protograph->edges protograph)
-        vertex-map (into {} (map (juxt :label identity) vertexes))]
-    {:vertexes vertex-map
+        edges (protograph->edges protograph)]
+    {:vertexes vertexes
+     :edges (label-map edges)
      :from (set-group :from edges)
      :to (set-group :to edges)}))
 
