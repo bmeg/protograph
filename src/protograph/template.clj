@@ -139,17 +139,6 @@
         onto (assoc top "data" slim)]
     [(merge (render-map fields onto) onto)]))
 
-(defn merge-outcomes
-  [outcomes]
-  (reduce
-   (fn [outcome {:keys [vertexes edges]}]
-     (-> outcome 
-         (update :vertexes into vertexes)
-         (update :edges into edges)))
-   {:vertexes []
-    :edges []}
-   outcomes))
-
 (defn process-index
   [process post {:keys [label index] :as directive} message]
   (if index
@@ -161,16 +150,30 @@
         (post after)))
     (process directive (assoc message "_self" message))))
 
+(defn empty-field?
+  [field]
+  (or
+   (empty? field)
+   (= \: (last field))))
+
+(defn empty-edge?
+  [edge]
+  (or
+   (empty-field? (get edge "from"))
+   (empty-field? (get edge "to"))))
+
 (defn process-edge
   [protograph message]
-  (process-index
-   (partial
-    process-entity
-    [:gid :fromLabel :from :label :toLabel :to]
-    edge-fields)
-   (partial reduce into [])
-   protograph
-   message))
+  (remove
+   empty-edge?
+   (process-index
+    (partial
+     process-entity
+     [:gid :fromLabel :from :label :toLabel :to]
+     edge-fields)
+    (partial reduce into [])
+    protograph
+    message)))
 
 (defn process-vertex
   [protograph message]
@@ -182,6 +185,17 @@
    (partial reduce into [])
    protograph
    message))
+
+(defn merge-outcomes
+  [outcomes]
+  (reduce
+   (fn [outcome {:keys [vertexes edges]}]
+     (-> outcome 
+         (update :vertexes into vertexes)
+         (update :edges into edges)))
+   {:vertexes []
+    :edges []}
+   outcomes))
 
 (declare process-directive)
 
