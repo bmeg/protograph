@@ -35,11 +35,18 @@
     (first
      (drop-while empty? out))))
 
+(defn truncate
+  [s n]
+  (if (> (count s) n)
+    (.substring s 0 n)
+    s))
+
 (def defaults
   {"each" (fn [s k] (mapv #(get % k) s))
    "flatten" flatten
    "split" (fn [s d] (string/split s (re-pattern d)))
    "or" template-or
+   "truncate" truncate
    "sort" sort
    "join" (fn [l d] (string/join d l))
    "float" convert-float
