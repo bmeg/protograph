@@ -36,10 +36,13 @@
      (drop-while empty? out))))
 
 (defn truncate
-  [s n]
-  (if (> (count s) n)
-    (.substring s 0 n)
-    s))
+  [s n?]
+  (try
+    (let [n (Integer/parseInt n?)]
+      (if (> (count s) n)
+        (.substring s 0 n)
+        s))
+    (catch Exception e s)))
 
 (def defaults
   {"each" (fn [s k] (mapv #(get % k) s))
