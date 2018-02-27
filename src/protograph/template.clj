@@ -176,7 +176,8 @@
    (process-index
     (partial
      process-entity
-     [:gid :fromLabel :from :label :toLabel :to]
+     ;; [:gid :fromLabel :from :label :toLabel :to]
+     [:gid :from :label :to]
      edge-fields)
     (partial reduce into [])
     protograph
@@ -261,9 +262,9 @@
 (defn compile-edge
   [edge]
   (-> edge
-      (update :fromLabel compile/compile-top)
+      ;; (update :fromLabel compile/compile-top)
       (update :label compile/compile-top)
-      (update :toLabel compile/compile-top)
+      ;; (update :toLabel compile/compile-top)
       (update :from compile/compile-top)
       (update :to compile/compile-top)
       (update :index compile?)
