@@ -1,19 +1,23 @@
 (ns protograph.dot
+  "Generate a dot file representing the connections between
+  all node types."
   (:require
    [clojure.set :as set]
    [clojure.string :as string]
    [clojure.tools.cli :as cli]
-   [protograph.template :as template]))
+   [protograph
+    [utils :as utils]
+    [template :as template]]))
 
-(defn emit-node
+(defn- emit-node
   [node]
   (str "    " node " [label=\"" node "\"]"))
 
-(defn emit-edge
+(defn- emit-edge
   [{:keys [from label to]}]
   (str "    " from "->" to " [label=\"" label "\"]"))
 
-(defn emit-dot
+(defn- emit-dot
   [{:keys [nodes edges]}]
   (let [out-nodes (mapv emit-node nodes)
         out-edges (mapv emit-edge edges)
@@ -22,7 +26,7 @@
         all (reduce into [[header] out-nodes out-edges [footer]])]
     (string/join "\n" all)))
 
-(defn protograph->graph
+(defn- protograph->graph
   [protograph]
   (let [graph (template/graph-structure protograph)
         nodes (map :gid (:vertexes graph))
@@ -30,16 +34,36 @@
     {:nodes nodes
      :edges edges}))
 
-(def parse-args
-  [["-p" "--protograph PROTOGRAPH" "path to protograph.yaml"
-    :default "protograph.yaml"]
+(def ^:private parse-args
+  [["-h" "--help"]
+   ["-p" "--protograph PROTOGRAPH" "Path to protograph.yaml"
+    :validate [#(and (.exists (java.io.File. %))
+                     (-> (java.io.File. %)
+                         (.getName)
+                         (string/ends-with? ".yaml")))
+               "Invalid protograph file"]]
    ["-o" "--output OUTPUT" "prefix for output file"
-    :default "protograph.dot"]])
+    :default "protograph.dot"
+    :validate [#(not (and (.exists (java.io.File. %))
+                          (.isDirectory (java.io.File. %))))
+               "Output prefix cannot match existing directory"]]])
 
 (defn -main
   [& args]
-  (let [env (:options (cli/parse-opts args parse-args))
-        protograph (template/load-protograph (:protograph env))
-        graph (protograph->graph protograph)
-        dot (emit-dot graph)]
-    (spit (:output env) dot)))
+  (let [{:keys [errors options]}
+        (cli/parse-opts args parse-args)
+        {:keys [protograph output help]} options]
+    (when help
+      (println (utils/format-parse-opts parse-args))
+      (System/exit 0))
+    (when errors
+      (utils/report-parse-errors errors)
+      (System/exit 1))
+    (when-not protograph
+      (println "Please supply a protograph file")
+      (System/exit 1))
+    (let [protograph (template/load-protograph protograph)
+          graph (protograph->graph protograph)
+          dot (emit-dot graph)]
+      (spit output dot)
+      (println (str "File written to " output)))))
