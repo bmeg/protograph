@@ -1,4 +1,4 @@
-(defproject protograph "0.0.16"
+(defproject protograph "0.0.21"
   :description "tranform a stream of messages into a graph"
   :url "http://github.com/bmeg/protograph"
   :license {:name "Eclipse Public License"
@@ -6,9 +6,9 @@
   :dependencies [[org.clojure/clojure "1.8.0"]
                  [org.clojure/tools.cli "0.3.5"]
                  [cheshire "5.7.1"]
+                 [instaparse "1.4.8"]
                  [io.forward/yaml "1.0.6"]
                  [com.taoensso/timbre "4.8.0"]
-                 [selmer "1.10.8"]
                  [clojurewerkz/propertied "1.2.0"]
                  [org.apache.kafka/kafka_2.11 "0.10.0.1"]]
   :repositories [["sonatype snapshots"
