@@ -14,16 +14,21 @@
   (str "    " from "->" to " [label=\"" label "\"]"))
 
 (defn emit-dot
-  [protograph]
-  (let [graph (template/graph-structure protograph)
-        nodes (keys (:vertexes graph))
-        edges (reduce set/union #{} (vals (:from graph)))
-        out-nodes (mapv emit-node nodes)
+  [{:keys [nodes edges]}]
+  (let [out-nodes (mapv emit-node nodes)
         out-edges (mapv emit-edge edges)
         header "digraph protograph {"
         footer "}"
         all (reduce into [[header] out-nodes out-edges [footer]])]
     (string/join "\n" all)))
+
+(defn protograph->graph
+  [protograph]
+  (let [graph (template/graph-structure protograph)
+        nodes (keys (:vertexes graph))
+        edges (reduce set/union #{} (vals (:from graph)))]
+    {:nodes nodes
+     :edges edges}))
 
 (def parse-args
   [["-p" "--protograph PROTOGRAPH" "path to protograph.yaml"
@@ -35,5 +40,6 @@
   [& args]
   (let [env (:options (cli/parse-opts args parse-args))
         protograph (template/load-protograph (:protograph env))
-        dot (emit-dot protograph)]
+        graph (protograph->graph protograph)
+        dot (emit-dot graph)]
     (spit (:output env) dot)))
