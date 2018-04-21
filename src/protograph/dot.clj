@@ -25,7 +25,7 @@
 (defn protograph->graph
   [protograph]
   (let [graph (template/graph-structure protograph)
-        nodes (keys (:vertexes graph))
+        nodes (map :gid (:vertexes graph))
         edges (reduce set/union #{} (vals (:from graph)))]
     {:nodes nodes
      :edges edges}))
