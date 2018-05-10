@@ -140,8 +140,6 @@
    entity]
   (let [core (select-keys directive top-level)
         top (render-map core entity)
-        ;; data (render-map data entity)
-        ;; out (splice-maps data splice entity)
         spliced (splice-maps {} splice entity)
         out (merge spliced (render-map data (merge entity spliced)))
         merged (if (:merge directive)
