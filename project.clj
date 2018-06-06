@@ -10,7 +10,10 @@
                  [io.forward/yaml "1.0.6"]
                  [com.taoensso/timbre "4.8.0"]
                  [clojurewerkz/propertied "1.2.0"]
-                 [org.apache.kafka/kafka_2.11 "0.10.0.1"]]
+                 [org.apache.kafka/kafka_2.11 "0.10.0.1"]
+                 [clojure-future-spec "1.9.0-beta4"]]
+  :profiles {:dev {:plugins [[venantius/yagni "0.1.4"]
+                             [lein-hiera "1.0.0"]]}}
   :repositories [["sonatype snapshots"
                   "https://oss.sonatype.org/content/repositories/snapshots"]
                  ["sonatype releases"

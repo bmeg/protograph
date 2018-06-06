@@ -3,7 +3,7 @@
    [clojure.string :as string]
    [instaparse.core :as parse]))
 
-(def field-spec
+(def ^:private field-spec
   "field = constant (template constant)*
    constant = #'[^{}]'*
    template = '{{' expression '}}'
@@ -16,23 +16,23 @@
    dot = '.'
    pipe = '|'")
 
-(def field-parser
+(def ^:private field-parser
   (parse/parser field-spec))
 
 (declare compile-switch)
 
-(defn compile-field
+(defn- compile-field
   [terms]
   (map compile-switch terms))
 
-(defn compile-index
+(defn- compile-index
   [terms]
   (let [index (apply str terms)]
     (try
       (Long/parseLong index)
       (catch Exception e index))))
 
-(defn compile-expression
+(defn- compile-expression
   [terms]
   (let [accessor (compile-switch (first terms))
         functions (filter (fn [i] (= :function (first i))) (rest terms))
@@ -43,7 +43,7 @@
             composite (apply comp (reverse (cons accessor applied)))]
         (composite m)))))
 
-(defn compile-accessor
+(defn- compile-accessor
   [terms]
   (let [indexes (filter (fn [i] (= :index (first i))) terms)
         indexes (map compile-switch indexes)]
@@ -51,7 +51,7 @@
     (fn [m]
       (get-in m indexes))))
 
-(defn compile-function
+(defn- compile-function
   [terms]
   (let [index (compile-switch (first terms))
         arguments (filter (fn [i] (= :argument (first i))) terms)
@@ -62,7 +62,7 @@
         (apply f (cons x arguments))
         (println (str "missing function " index))))))
 
-(defn compile-switch
+(defn- compile-switch
   [[key & terms]]
   (condp = key
     :field (compile-field terms)
@@ -75,13 +75,13 @@
     :argument (apply str terms)
     terms))
 
-(defn apply-context
+(defn- apply-context
   [m f]
   (if (ifn? f)
     (f m)
     f))
 
-(defn expression?
+(defn- expression?
   [compiled]
   (and
    (= 3 (count compiled))

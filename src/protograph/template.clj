@@ -1,19 +1,25 @@
 (ns protograph.template
   (:require
    [clojure.string :as string]
-   [clojure.pprint :as pprint]
+   [clojure.pprint :refer [pprint]]
    [clojure.java.io :as io]
    [clojure.tools.cli :as cli]
    [taoensso.timbre :as log]
    [cheshire.core :as json]
    [yaml.core :as yaml]
-   [protograph.kafka :as kafka]
-   [protograph.compile :as compile])
+   [protograph
+    [utils :as utils]
+    [kafka :as kafka]
+    [compile :as compile]
+    [validation :as validation]]
+   [clojure.spec.alpha :as spec])
   (:import
    [java.io StringWriter])
   (:gen-class))
 
-(defn convert-int
+(spec/check-asserts true)
+
+(defn- convert-int
   [n]
   (if (string? n)
     (try
@@ -21,7 +27,7 @@
       (catch Exception e 0))
     n))
 
-(defn convert-float
+(defn- convert-float
   [r]
   (if (string? r)
     (try
@@ -57,15 +63,7 @@
    "first" first
    "last" last})
 
-(defn map-values
-  [f m]
-  (into
-   {}
-   (map
-    (fn [[k v]]
-      [k (f v)]) m)))
-
-(def dot #"\.")
+(def ^:private dot-re #"\.")
 
 (defn evaluate-template
   [template context]
@@ -80,7 +78,7 @@
    (map
     (fn [[k template]]
       (let [press (evaluate-template template context)
-            [key type] (string/split (name k) dot)
+            [key type] (string/split (name k) dot-re)
             outcome (condp = type
                       "int" (convert-int press)
                       "float" (convert-float press)
@@ -106,7 +104,7 @@
                 (do
                   (log/info "failed" k template)
                   (.printStackTrace e))))
-            [key type] (string/split (name k) dot)
+            [key type] (string/split (name k) dot-re)
             outcome (condp = type
                       "int" (convert-int press)
                       "float" (convert-float press)
@@ -124,19 +122,12 @@
 (def edge-fields
   {:gid (compile/compile-top "({{from}})--{{label}}->({{to}})")})
 
-(def vertex-fields
-  {})
+(def ^:private vertex-fields {})
 
 (defn process-entity
   [top-level
    fields
-   {:keys
-    [state
-     data
-     splice
-     filter
-     lookup]
-    :as directive}
+   {:keys [state data splice filter lookup] :as directive}
    entity]
   (let [core (select-keys directive top-level)
         top (render-map core entity)
@@ -172,7 +163,7 @@
    (empty-field? (get edge "from"))
    (empty-field? (get edge "to"))))
 
-(defn process-edge
+(defn- process-edge
   [protograph message]
   (remove
    empty-edge?
@@ -186,7 +177,7 @@
     protograph
     message)))
 
-(defn process-vertex
+(defn- process-vertex
   [protograph message]
   (process-index
    (partial
@@ -210,7 +201,7 @@
 
 (declare process-directive)
 
-(defn process-inner
+(defn- process-inner
   [protograph state {:keys [path label]} message]
   (if-let [inner (render-template path message)]
     (let [directive (get protograph label)
@@ -218,7 +209,7 @@
       (process-directive protograph directive inner))
     []))
 
-(defn process-inner-index
+(defn- process-inner-index
   [protograph state inner message]
   (if inner
     (process-index
@@ -228,11 +219,11 @@
      message)
     {:vertexes [] :edges []}))
 
-(defn map-cat
+(defn- map-cat
   [f s]
   (reduce into [] (map f s)))
 
-(defn process-directive
+(defn- process-directive
   [protograph {:keys [vertexes edges state inner] :as directive} message]
   (let [down (mapv #(process-inner-index protograph state % message) inner)
         down (merge-outcomes down)
@@ -307,16 +298,20 @@
 
 (defn load-compiled-protograph
   [path]
-  (let [raw (yaml/parse-string (slurp path))
+  (let [raw (->> (slurp path)
+                 (yaml/parse-string)
+                 (spec/assert :protograph.validation/protograph))
         compiled (compile-protograph raw)]
     (entries->map compiled)))
 
 (defn load-protograph
   [path]
-  (let [raw (yaml/parse-string (slurp path))]
+  (let [raw (->> (slurp path)
+                 (yaml/parse-string)
+                 (spec/assert :protograph.validation/protograph))]
     (entries->map raw)))
 
-(defn label-map
+(defn- label-map
   [labeled]
   (into {} (map (juxt :label identity) labeled)))
 
@@ -332,7 +327,7 @@
        vertexes))
     protograph)))
 
-(defn protograph->edges
+(defn- protograph->edges
   [protograph]
   (reduce
    into []
@@ -344,14 +339,11 @@
        edges))
     protograph)))
 
-(defn set-group
+(defn- set-group
   [f s]
-  (into
-   {}
-   (map
-    (fn [[k v]]
-      [k (set v)])
-    (group-by f s))))
+  (into {}
+        (map (fn [[k v]] [k (set v)])
+             (group-by f s))))
 
 (defn graph-structure
   [protograph]
@@ -362,7 +354,7 @@
      :from (set-group :from edges)
      :to (set-group :to edges)}))
 
-(defn partial-state
+(defn- partial-state
   []
   {:vertexes (atom {})
    :sources (atom {})
@@ -370,21 +362,17 @@
 
 (defn match-label
   [match message]
-  (not
-   (empty?
-    (filter
-     (fn [[k v]]
-       (= (get message k) v))
-     match))))
+  ((comp not empty?)
+   (filter (fn [[k v]] (= (get message k) v))
+           match)))
 
 (defn match-labels
   [protograph message]
   (let [match (map (juxt :match identity) (vals protograph))
         found (first
-               (filter
-                (fn [[m p]]
-                  (match-label m message))
-                match))]
+               (filter (fn [[m p]]
+                         (match-label m message))
+                       match))]
     (get (last found) :label)))
 
 (defn transform-dir-write
@@ -409,25 +397,7 @@
               (log/info e)
               {:vertexes [] :edges []})))))))
 
-(defn write-output
-  [prefix entities]
-  (let [writer (io/writer (str prefix ".json"))]
-    (doseq [entity entities]
-      (.write writer (str (json/generate-string entity) "\n")))
-    (.close writer)))
-
-(def parse-args
-  [["-p" "--protograph PROTOGRAPH" "path to protograph.yaml"
-    :default "protograph.yaml"]
-   ["-l" "--label LABEL" "label for inputs (if omitted, label is derived from filenames)"]
-   ["-i" "--input INPUT" "input file or directory"]
-   ["-o" "--output OUTPUT" "prefix for output file"]
-   ["-k" "--kafka KAFKA" "host for kafka server"
-    :default "localhost:9092"]
-   ["-t" "--topic TOPIC" "input topic to read from"]
-   ["-x" "--prefix PREFIX" "output topic prefix"]])
-
-(defn write-graph
+(defn- write-graph
   [vertex-writer edge-writer {:keys [vertexes edges]}]
   (doseq [vertex vertexes]
     (.write vertex-writer (str (json/generate-string vertex) "\n")))
@@ -454,17 +424,44 @@
        {:vertex (.toString vertex-writer)
         :edge (.toString edge-writer)})}))
 
+(def ^:private parse-args
+  [["-p" "--protograph PROTOGRAPH" "path to protograph.yaml"
+    :validate [#(and (.exists (java.io.File. %))
+                     (-> (java.io.File. %)
+                         (.getName)
+                         (string/ends-with? ".yaml")))
+               "Invalid protograph file"]]
+   ["-l" "--label LABEL" "label for inputs"]
+   ["-i" "--input INPUT" "Input file or directory"
+    :validate [#(.exists (java.io.File. %))]]
+   ["-o" "--output OUTPUT" "Prefix for output file"]
+   ["-k" "--kafka KAFKA" "Host for kafka server"
+    :default "localhost:9092"]
+   ["-t" "--topic TOPIC" "Input topic to read from"]
+   ["-x" "--prefix PREFIX" "Output topic prefix"]
+   ["-h" "--help"]])
+
 (defn -main
   [& args]
-  (let [shell (cli/parse-opts args parse-args)
-        summary (:summary shell)]
+  (let [{:keys [errors options summary]}
+        (cli/parse-opts args parse-args)
+        {:keys [input protograph output help]} options]
+    (when help
+      (println (utils/format-parse-opts parse-args))
+      (System/exit 0))
+    (when errors
+      (utils/report-parse-errors errors)
+      (System/exit 1))
+    (when-not (and protograph input)
+      (println "Missing required args")
+      (log/info summary)
+      (System/exit 1))
     (try
-      (let [env (:options shell)
-            protograph (load-compiled-protograph (:protograph env))
-            output (:output env)
+      (let [protograph (load-compiled-protograph protograph)
             writer (converge-writer output)]
-        (transform-dir-write protograph (:write writer) env)
+        (transform-dir-write protograph (:write writer) options)
         ((:close writer)))
       (catch Exception e
         (.printStackTrace e)
         (log/info summary)))))
+

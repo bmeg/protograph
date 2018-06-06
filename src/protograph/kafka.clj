@@ -12,15 +12,15 @@
    [kafka.utils ZkUtils]
    [kafka.admin AdminUtils]))
 
-(def string-serializer
+(def ^:private string-serializer
   {"key.serializer" "org.apache.kafka.common.serialization.StringSerializer"
    "value.serializer" "org.apache.kafka.common.serialization.StringSerializer"})
 
-(def string-deserializer
+(def ^:private string-deserializer
   {"key.deserializer" "org.apache.kafka.common.serialization.StringDeserializer"
    "value.deserializer" "org.apache.kafka.common.serialization.StringDeserializer"})
 
-(def consumer-defaults
+(def ^:private consumer-defaults
   (merge
    string-deserializer
    {;; "auto.offset.reset" "earliest"
@@ -150,9 +150,8 @@
 
 (defn dir->files
   [path]
-  (filter
-   #(.isFile %)
-   (file-seq (io/file path))))
+  (filter #(.isFile %)
+          (file-seq (io/file path))))
 
 (defn dir->streams
   [out path]
@@ -189,6 +188,7 @@
     (dir->streams spout path)))
 
 (def parse-args
+  ;; NOTE: might be useful to be able to specify host and port separately
   [["-k" "--kafka KAFKA" "host for kafka server"
     :default "localhost:9092"]
    ["-t" "--topic TOPIC" "kafka topic"]

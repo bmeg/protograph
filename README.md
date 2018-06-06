@@ -411,7 +411,9 @@ Either way, start by downloading the [latest release](https://github.com/bmeg/pr
 
 To run Protograph on a directory of input files, use the `--input` and `--output` options, along with the path to your `protograph.yaml` under `--protograph`:
 
-    java -jar protograph.jar --protograph path/to/protograph.yaml --input /path/to/input/messages.Label.json --output /path/to/output/with/file.prefix
+    java -jar protograph.jar --protograph path/to/protograph.yaml \\
+                             --input /path/to/input/messages.Label.json \\
+                             --output /path/to/output/with/file.prefix
 
 Once processing is complete, it will output two files of the form:
 
@@ -424,7 +426,8 @@ depending on what you passed to `--output`. If you know all messages will have a
 
 To run Protograph in Kafka mode you must have access to a Kafka node with some topics to import. 
 
-    java -jar protograph.jar --protograph path/to/protograph.yaml --topic "topic1 topic2 topic3"
+    java -jar protograph.jar --protograph path/to/protograph.yaml \\
+                             --topic "topic1 topic2 topic3"
 
 This will by default output to the Kafka topics `protograph.Vertex` and `protograph.Edge`. To change the prefix for these topics pass in something under the `--prefix` key:
 
@@ -433,13 +436,16 @@ This will by default output to the Kafka topics `protograph.Vertex` and `protogr
 
 If you need to change the kafka host, pass it in under `--kafka`:
 
-    java -jar protograph.jar --protograph path/to/protograph.yaml --kafka 10.96.11.82:9092 --topic "topic1 topic2 topic3"
+    java -jar protograph.jar --protograph path/to/protograph.yaml \\
+                             --kafka 10.96.11.82:9092 \\
+                             --topic "topic1 topic2 topic3"
 
 # generating dot files
 
 You can also use protograph to generate a dot file representing the connections between all the node types. To do so, run the following command:
 
-    java -cp protograph.jar clojure.main -m protograph.dot --protograph path/to/protograph.yaml --output path/to/output.dot
+    java -cp protograph.jar clojure.main -m protograph.dot --protograph path/to/protograph.yaml \\
+                                                           --output path/to/output.dot
 
 Then you can generate a png representing the graph using the following command (assuming you have `graphviz` installed):
 
